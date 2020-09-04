@@ -1,15 +1,16 @@
-# 关于GSerialize
+# About GSerialize
 
-GSerialize 是基于代码生成的C#二进制序列化方案
-* 支持绝大多数原生类型
-* 支持用GSerializableAttribute标记的public class
-* 支持数组、List、Dictionary等集合类型
-* 快速（比 BinaryFormatter 快一个数量级）
-* 支持 .NET Standard 2.0
+GSerialize is a C# binary serializer based on code generating.
 
-## 用法
+* Support most of primitive types
+* Support customized serializable class
+* Support Array, List, Dictionary
+* High performance (10 times faster than BinaryFormatter）
+* Target to .NET Standard 2.0
 
-### 序列化原生类型，目前支持的原生类型有
+## Usage
+
+### Serialize primitive types listing bellow
 * Int16/UInt16
 * Int32/UInt32
 * Int64/UInt64
@@ -21,7 +22,8 @@ GSerialize 是基于代码生成的C#二进制序列化方案
 * DateTime
 * Guid
 
-#### 代码示例
+#### Sample to serialize primitive types
+```C#
     var mem = new MemoryStream();
     var serializer = new Serializer(mem);
 
@@ -59,42 +61,46 @@ GSerialize 是基于代码生成的C#二进制序列化方案
     mem.Seek(0, SeekOrigin.Begin);
     var guid_2 = serializer.Deserialize<Guid>();
     Debug.Assert(guid_1 == guid_2);
+```
 
-### 自定义类型
+### Serialize a customize class
 
-#### 定义自己的可序列化类型
-自定义类型的字段/属性可以是一下类型
-* 原生类型
+#### Define a customize serializable class
+The field/property can be one of following
+* primitive supported types
 * List<T> 
 * Dictionary<K,V>
 * Enum
 * Nullable
 
-#### 代码示例
-    [GSerializable] //附加 GSerializableAttribute, 标记此类为可序列化
+#### Sample to define a customize serializable class
+```C#
+    [GSerializable] //GSerializableAttribute marks this class serializable
     public class OptionalFieldUnit
     {
-        public string RequiredField; //必备字段/属性，必须不为null
+        public string RequiredField; //required field/property must NOT be null
 
-        [Optional]  //Optional 标记可选字段/属性，可以为null，也可以不为null
+        [Optional]  //OptionalAttribute marks a field/property optional that means it can be null or not
         public string OptionalField;
 
-        [Ignored] //Optional 标记忽略字段/属性，不会被序列化
+        [Ignored] //OptionalAttribute marks a field/property ignored that means it will never be serialized 
         public string IgnoredField;
 
-        public string ReadOnlyProperty => PrivateField; //readonly 字段/属性不会被序列化
+        public string ReadOnlyProperty => PrivateField; //readonly field/property will be ignored
 
-        private string PrivateField; //private 字段/属性不会被序列化
+        private string PrivateField; //none public field/property will be ignored
     }
+```
 
-## 程序行为
-当serializer.Serialize<T>方法被调用时，如果针对类型T的序列化代码不存在，则自动生成序列化代码并缓存在内存中，后续则直接调用生成的代码来执行序列化。
+## Behavior
+When mehtod serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they doesn't exist in mempry.
 
-当生成类型T相关的序列化代码时，其所在Assembly中的全部GSerializable标记public class皆同时生成序列化代码，且其依赖的类型相关序列化代码也会生成。
+All other customized serializable types in the same assembly will get their generated serialization codes at same time.
 
-生成代码过程相对较慢，可能会消耗若干秒。客户程序可以通过调用Serializer.CacheSerialiablesInAssembly方法来预先生成某个Assembly中全部GSerializable标记的public class相关序列化代码。
+The generating process will take a few seconds, the client code can call Serializer.CacheSerialiablesInAssembly to generate all serialization codes before any serializer.Serialize<T> calls.
 
-## 限制
-GSerialize 不支持循环引用检测，若待序列化class中含有循环引用，则序列化过程会死循环，因此自定义类型必须保证不能出现内部成员属性/字段间的交叉引用。
 
-GSerialize 不是线程安全的，从多个线程同时访问GSerialize的同一个实例可能会出错。
+## Limits
+GSerialize doesn't check references among the class fields, so the customize class must avoid property/field reference cycle otherwise it might get a dead loop while serializing.
+
+GSerialize is not thread safe, so client shall avoid calling one instance of Serializer from variety threads.
