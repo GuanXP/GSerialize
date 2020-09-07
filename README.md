@@ -24,41 +24,41 @@ GSerialize is a C# binary serializer based on code generating.
 
 #### Sample to serialize primitive types
 ```C#
-    var mem = new MemoryStream();
-    var serializer = new Serializer(mem);
+    var stream = new MemoryStream();
+    var serializer = new Serializer(stream);
 
     UInt16 un16_1 = 123;
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     serializer.Serialize(un16_1);
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     var un16_2 = serializer.Deserialize<UInt16>();
     Debug.Assert(un16_1 == un16_2);
 
     string str1 = "good idea";
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     serializer.Serialize(str1);
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     var str2 = serializer.Deserialize<string>();
     Debug.Assert(str1 == str2);
 
     float f1 = 1.236f;
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     serializer.Serialize(f1);
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     var f2 = serializer.Deserialize<float>();
     Debug.Assert(f1 == f2);
 
     DateTime dt1 = DateTime.Now;
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     serializer.Serialize(dt1);
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     var dt2 = serializer.Deserialize<DateTime>();
     Debug.Assert(dt1 == dt2);
 
     Guid guid_1 = Guid.NewGuid();
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     serializer.Serialize(guid_1);
-    mem.Seek(0, SeekOrigin.Begin);
+    stream.Seek(0, SeekOrigin.Begin);
     var guid_2 = serializer.Deserialize<Guid>();
     Debug.Assert(guid_1 == guid_2);
 ```
@@ -83,7 +83,7 @@ The field/property can be one of following
         [Optional]  //OptionalAttribute marks a field/property optional that means it can be null or not
         public string OptionalField;
 
-        [Ignored] //OptionalAttribute marks a field/property ignored that means it will never be serialized 
+        [Ignored] //IgnoredAttribute marks a field/property ignored that means it will never be serialized 
         public string IgnoredField;
 
         public string ReadOnlyProperty => PrivateField; //readonly field/property will be ignored
