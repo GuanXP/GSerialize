@@ -93,7 +93,7 @@ The field/property can be one of following
 ```
 
 ## Behavior
-When mehtod serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they doesn't exist in mempry.
+When mehtod serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they doesn't exist in memory.
 
 All other customized serializable types in the same assembly will get their generated serialization codes at same time.
 
@@ -103,4 +103,4 @@ The generating process will take a few seconds, the client code can call Seriali
 ## Limits
 GSerialize doesn't check references among the class fields, so the customize class must avoid property/field reference cycle otherwise it might get a dead loop while serializing.
 
-GSerialize is not thread safe, so client shall avoid calling one instance of Serializer from variety threads.
+GSerialize is not thread safe, so client shall avoid calling identical instance of Serializer from variety threads.
