@@ -63,9 +63,9 @@ GSerialize is a C# binary serializer based on code generating.
     Debug.Assert(guid_1 == guid_2);
 ```
 
-### Serialize a customize class
+### Serialize a customized class
 
-#### Define a customize serializable class
+#### Define a customized serializable class
 The field/property can be one of following
 * primitive supported types
 * List<T> 
@@ -73,7 +73,7 @@ The field/property can be one of following
 * Enum
 * Nullable
 
-#### Sample to define a customize serializable class
+#### Sample to define a customized serializable class
 ```C#
     [GSerializable] //GSerializableAttribute marks this class serializable
     public class OptionalFieldUnit
@@ -100,7 +100,9 @@ All other customized serializable types in the same assembly will get their gene
 The generating process will take a few seconds, the client code can call Serializer.CacheSerialiablesInAssembly to generate all serialization codes before any serializer.Serialize<T> calls.
 
 
-## Limits
-GSerialize doesn't check references among the class fields, so the customize class must avoid property/field reference cycle otherwise it might get a dead loop while serializing.
+## Limitations
+GSerialize doesn't check references among the class fields, so the customized class must avoid property/field reference cycle otherwise it might get a dead loop while serializing.
 
 GSerialize is not thread safe, so client shall avoid calling identical instance of Serializer from variety threads.
+
+Customized serializable class must provide a default constructor.

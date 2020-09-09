@@ -5,7 +5,7 @@ using System.Text;
 
 namespace GSerialize
 {
-    public class CollectionPacker
+    public sealed class CollectionPacker
     {
         public static void WriteList<T>(List<T> list, Serializer serializer)
         {

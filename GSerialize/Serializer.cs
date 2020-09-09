@@ -7,7 +7,7 @@ using System.Text;
 
 namespace GSerialize
 {
-    public class Serializer
+    public sealed class Serializer
     {
         private class Methods
         {

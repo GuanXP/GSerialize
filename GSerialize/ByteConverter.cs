@@ -4,7 +4,7 @@ using System.Text;
 
 namespace GSerialize
 {
-    class ByteConverter
+    sealed class ByteConverter
     {
         internal unsafe static void GetBytes(Int16 value, byte[] bytes)
         {

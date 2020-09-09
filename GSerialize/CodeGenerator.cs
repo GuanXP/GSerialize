@@ -10,7 +10,7 @@ using System.Runtime.Loader;
 
 namespace GSerialize
 {
-    class CodeGenerator
+    sealed class CodeGenerator
     {
         public static string ClassNameGenerated(Type commandType)
         {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GSerialize
 {
-    public class Packer
+    public sealed class Packer
     {
         private readonly Stream _stream;
         private readonly byte[] _16BytesBuffer = new byte[16];
