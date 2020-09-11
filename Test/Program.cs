@@ -12,8 +12,8 @@ namespace Test
     {
         public static void UnitTest()
         {
-            Console.WriteLine($"{DateTime.Now} 基本类型测试开始");
-            var mem = new MemoryStream();
+            Console.WriteLine($"{DateTime.Now} start primitive type testing");
+            using var mem = new MemoryStream();
             var serializer = new Serializer(mem);
 
             Int16 n16_1 = -123;
@@ -107,7 +107,7 @@ namespace Test
             var guid_2 = serializer.Deserialize<Guid>();
             Debug.Assert(guid_1 == guid_2);
 
-            Console.WriteLine($"{DateTime.Now} 基本类型测试结束");
+            Console.WriteLine($"{DateTime.Now} end primitive type testing");
         }
     }
 
@@ -129,8 +129,8 @@ namespace Test
 
         public static void UnitTest()
         {
-            Console.WriteLine($"{DateTime.Now} 可选字段/属性测试开始");
-            var mem = new MemoryStream();
+            Console.WriteLine($"{DateTime.Now} start optional/ignored fields/properties testing");
+            using var mem = new MemoryStream();
             var serializer = new Serializer(mem);
 
             var item1 = new OptionalFieldUnit();
@@ -144,7 +144,7 @@ namespace Test
             {
                 excepted = ex.InnerException is ArgumentNullException;
             }
-            Debug.Assert(excepted); //必选字段/属性不能为null
+            Debug.Assert(excepted); //required field/property must be NOT null
 
             item1.RequiredField = "hello";
             item1.FullAccessibleProperty = "property";
@@ -154,10 +154,10 @@ namespace Test
             var item2 = serializer.Deserialize<OptionalFieldUnit>();
             Debug.Assert(item1.RequiredField == item2.RequiredField);
             Debug.Assert(item1.FullAccessibleProperty == item2.FullAccessibleProperty);
-            Debug.Assert(item2.OptionalField == null);  //optional字段/属性为null时，反序列化还原为null         
-            Debug.Assert(item2.IgnoredField == null);   //ignored字段/属性不会被序列化
-            Debug.Assert(item2.PrivateField == null);   //private字段/属性不会被序列化
-            Debug.Assert(item2.ReadOnlyProperty == null); //readonly字段/属性不会被序列化
+            Debug.Assert(item2.OptionalField == null);      //optional field/property can be null         
+            Debug.Assert(item2.IgnoredField == null);       //ignored field/property will never be serialized
+            Debug.Assert(item2.PrivateField == null);       //private field/property will never be serialized
+            Debug.Assert(item2.ReadOnlyProperty == null);   //readonly field/property will never be serialized
 
             item1.OptionalField = "now";
             item1.IgnoredField = "Ignored";
@@ -166,12 +166,12 @@ namespace Test
             serializer.Serialize(item1);
             mem.Seek(0, SeekOrigin.Begin);
             item2 = serializer.Deserialize<OptionalFieldUnit>();
-            Debug.Assert(item1.OptionalField == item2.OptionalField);   //optional字段/属性不为null时，反序列化正确还原
-            Debug.Assert(item2.IgnoredField == null);                   //ignored字段/属性不会被序列化
-            Debug.Assert(item2.PrivateField == null);                   //private字段/属性不会被序列化
-            Debug.Assert(item2.ReadOnlyProperty == null);               //readonly字段/属性不会被序列化
+            Debug.Assert(item1.OptionalField == item2.OptionalField);   //optional field/property can be NOT null
+            Debug.Assert(item2.IgnoredField == null);
+            Debug.Assert(item2.PrivateField == null);
+            Debug.Assert(item2.ReadOnlyProperty == null);
 
-            Console.WriteLine($"{DateTime.Now} 可选字段/属性测试结束");
+            Console.WriteLine($"{DateTime.Now} end optional/ignored fields/properties testing");
         }
     }
 
@@ -205,8 +205,8 @@ namespace Test
 
         public static void UnitTest()
         {
-            Console.WriteLine($"{DateTime.Now} 集合/枚举类型测试开始");
-            var mem = new MemoryStream();
+            Console.WriteLine($"{DateTime.Now} start collection/enum/nullable testing");
+            using var mem = new MemoryStream();
             var serializer = new Serializer(mem);
 
             var p1 = new CollectionUnit { EnumField = ColorEnum.Green };
@@ -243,7 +243,7 @@ namespace Test
             Debug.Assert(p2.DictField["First"].FloatValue == 556);
             Debug.Assert(p2.FlagField == p1.FlagField);
 
-            Console.WriteLine($"{DateTime.Now} 集合/枚举类型测试结束");
+            Console.WriteLine($"{DateTime.Now} end collection/enum/nullable testing");
         }
     }
 
@@ -269,25 +269,25 @@ namespace Test
         {
             PrimitiveTypesUnit.UnitTest();
 
-            Console.WriteLine($"{DateTime.Now} 缓存Assembly生成代码开始");
-            //缓存assembly并非必要，但提前缓存将加速后续的序列化操作
+            Console.WriteLine($"{DateTime.Now} start generating code for an assembly");
+            //This step is not neccessary because GSerialize will do it when the generated code required at first time
             Serializer.CacheSerialiablesInAssembly(typeof(NestedUnit).Assembly);
-            Console.WriteLine($"{DateTime.Now} 缓存Assembly生成代码结束");
+            Console.WriteLine($"{DateTime.Now} end generating code for an assembly");
 
             OptionalFieldUnit.UnitTest();
             CollectionUnit.UnitTest();
             PerformanceTest();
 
-            Console.WriteLine($"{DateTime.Now} 单元测试通过");
+            Console.WriteLine($"{DateTime.Now} Unit test successed");
         }
 
         private static void PerformanceTest()
         {
-            var mem = new MemoryStream();
+            using var mem = new MemoryStream();
             var serializer = new Serializer(mem);
 
             var p1 = new CollectionUnit();
-            Console.WriteLine($"{DateTime.Now}.{DateTime.Now.Millisecond} 性能测试开始");
+            Console.WriteLine($"{DateTime.Now}.{DateTime.Now.Millisecond} start performance testing");
             for (var i=0; i<100000; ++i)
             {
                 mem.Seek(0, SeekOrigin.Begin);
@@ -295,9 +295,9 @@ namespace Test
                 mem.Seek(0, SeekOrigin.Begin);
                 serializer.Deserialize<CollectionUnit>();
             }
-            Console.WriteLine($"{DateTime.Now}.{DateTime.Now.Millisecond} 性能测试开始结束");
+            Console.WriteLine($"{DateTime.Now}.{DateTime.Now.Millisecond} end performance testing");
 
-            Console.WriteLine($"{DateTime.Now} 性能比较GSerialize开始");
+            Console.WriteLine($"{DateTime.Now} start performance comparing: GSerialize");
             for (var i = 0; i < 1000000; ++i)
             {
                 mem.Seek(0, SeekOrigin.Begin);
@@ -305,9 +305,9 @@ namespace Test
                 mem.Seek(0, SeekOrigin.Begin);
                 serializer.Deserialize<NestedUnit>();
             }
-            Console.WriteLine($"{DateTime.Now} 性能比较GSerialize结束");
+            Console.WriteLine($"{DateTime.Now} end performance comparing: GSerialize");
 
-            Console.WriteLine($"{DateTime.Now} 性能比较BinaryFormatter开始");
+            Console.WriteLine($"{DateTime.Now} start performance comparing: BinaryFormatter");
             var formatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
             for (var i = 0; i < 1000000; ++i)
             {
@@ -317,7 +317,7 @@ namespace Test
                 formatter.Deserialize(mem);
             }
 
-            Console.WriteLine($"{DateTime.Now} 性能比较BinaryFormatter结束");
+            Console.WriteLine($"{DateTime.Now} end performance comparing: BinaryFormatter");
         }
     }
 }
