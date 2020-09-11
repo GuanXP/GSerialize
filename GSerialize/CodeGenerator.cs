@@ -252,14 +252,14 @@ namespace GSerialize
 
     static class TypeExtension
     {
-        internal static string GeneratedClassName(this Type commandType)
+        internal static string GeneratedClassName(this Type type)
         {
-            return $"Serial_{commandType.FullName.Replace('.', '_').Replace('+', '_')}";
+            return $"Serial_{type.FullName.Replace('.', '_').Replace('+', '_')}";
         }
 
-        internal static string GeneratedFullClassName(this Type commandType)
+        internal static string GeneratedFullClassName(this Type type)
         {
-            return $"GSerialize.Generated.{commandType.GeneratedClassName()}";
+            return $"GSerialize.Generated.{type.GeneratedClassName()}";
         }
 
         internal static string VisibleClassName(this Type type)

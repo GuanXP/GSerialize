@@ -60,6 +60,12 @@ namespace GSerialize
                 *((Decimal*)b) = value;
         }
 
+        internal unsafe static void GetBytes(Guid value, byte[] bytes)
+        {
+            fixed (byte* b = bytes)
+                *((Guid*)b) = value;
+        }
+
         internal unsafe static Int16 ToInt16(byte[] bytes)
         {
             fixed (byte* b = bytes) return *((Int16*)b);
@@ -103,6 +109,11 @@ namespace GSerialize
         internal unsafe static Decimal ToDecimal(byte[] bytes)
         {
             fixed (byte* b = bytes) return *((Decimal*)b);
+        }
+
+        internal unsafe static Guid ToGuid(byte[] bytes)
+        {
+            fixed (byte* b = bytes) return *((Guid*)b);
         }
     }
 }

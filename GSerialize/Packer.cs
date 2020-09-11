@@ -11,7 +11,8 @@ namespace GSerialize
     {
         private readonly Stream _stream;
         private readonly byte[] _16BytesBuffer = new byte[16];
-        private readonly byte[] _guidBuffer = new byte[16];
+        private readonly UTF8Encoding _utf8 = Encoding.UTF8 as UTF8Encoding;
+        private readonly byte[] _stringBuffer = new byte[1024];
         public Packer(Stream stream)
         {
             this._stream = stream;
@@ -19,12 +20,13 @@ namespace GSerialize
 
         public Guid ReadGuid()
         {
-            return new Guid(ReadNBytes(_guidBuffer, 16));
+            return ByteConverter.ToGuid(ReadNBytes(_16BytesBuffer, 16));
         }
 
         public void WriteGuid(Guid value)
         {
-            _stream.Write(value.ToByteArray(), 0, 16);
+            ByteConverter.GetBytes(value, _16BytesBuffer);
+            _stream.Write(_16BytesBuffer, 0, 16);
         }
 
         public void WriteBool(bool value)
@@ -39,9 +41,11 @@ namespace GSerialize
 
         public void WriteString(String value)
         {
-            var bytes = Encoding.UTF8.GetBytes(value);
-            WriteInt32(bytes.Length);
-            _stream.Write(bytes, 0, bytes.Length);
+            var len = _utf8.GetByteCount(value);
+            var bytes = len <= _stringBuffer.Length ? _stringBuffer : new byte[len];
+            _utf8.GetBytes(value, 0, value.Length, bytes, 0);
+            WriteInt32(len);
+            _stream.Write(bytes, 0, len);
         }
 
         public String ReadString()
@@ -49,7 +53,7 @@ namespace GSerialize
             var len = ReadInt32();
             if (len > 0)
             {
-                var bytes = new byte[len];
+                var bytes = len <= _stringBuffer.Length ? _stringBuffer : new byte[len];
                 return Encoding.UTF8.GetString(ReadNBytes(bytes, len), 0, len);
             }
             else
