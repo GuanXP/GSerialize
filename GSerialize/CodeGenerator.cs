@@ -393,41 +393,55 @@ namespace GSerialize.Generated
         private static List<PropertyFieldInfo> FindProperties(Type type)
         {
             var result = new List<PropertyFieldInfo>();
-            foreach(var a in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            var properties = from p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                where p.CanWrite && p.CanRead && !p.IsIgnored()
+                select p;
+            foreach(var p in properties)
             {
-                if (!a.IsDefined(typeof(IgnoredAttribute), inherit: false) && a.CanWrite)
+                result.Add(new PropertyFieldInfo 
                 {
-                    var isOptional = a.IsDefined(typeof(OptionalAttribute), inherit: false);
-                    result.Add(new PropertyFieldInfo 
-                    {
-                        MemberType = a.PropertyType, 
-                        MemberName = a.Name,
-                        IsOptional = isOptional
-                    });
-                }
+                    MemberType = p.PropertyType, 
+                    MemberName = p.Name,
+                    IsOptional = p.IsOptional()
+                });
             }
 
-            foreach (var a in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            var fields = from f in type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                where !f.IsInitOnly && !f.IsIgnored()
+                select f;
+
+            foreach (var f in fields)
             {
-                if (!a.IsDefined(typeof(IgnoredAttribute), inherit: false))
-                {
-                    var isOptional = a.IsDefined(typeof(OptionalAttribute), inherit: false);
-                    result.Add(new PropertyFieldInfo 
-                    { 
-                        MemberType = a.FieldType, 
-                        MemberName = a.Name,
-                        IsOptional = isOptional
-                    });
-                }
+                result.Add(new PropertyFieldInfo 
+                { 
+                    MemberType = f.FieldType, 
+                    MemberName = f.Name,
+                    IsOptional = f.IsOptional()
+                });
             }
             return result;
+        }
+
+        
+    }
+
+    static class MemberInfoExtension
+    {
+        internal static bool IsOptional(this MemberInfo info)
+        {
+            return info.IsDefined(typeof(OptionalAttribute), inherit: false);
+        }
+
+        internal static bool IsIgnored(this MemberInfo info)
+        {
+            return info.IsDefined(typeof(IgnoredAttribute), inherit: false);
         }
     }
 
     class PropertyFieldInfo
     {
-        public Type MemberType;
-        public string MemberName;
-        public bool IsOptional;
+        internal Type MemberType;
+        internal string MemberName;
+        internal bool IsOptional;
     }
 }
