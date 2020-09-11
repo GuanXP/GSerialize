@@ -113,7 +113,7 @@ namespace GSerialize
                 serializingTypes, referencedAssemblies, generatedAssemblyName);
             foreach (var t in serializingTypes)
             {
-                var classType = compiledAssembly.GetType(CodeGenerator.FullClassNameGenerated(t));
+                var classType = compiledAssembly.GetType(t.GeneratedFullClassName());
                 var methods = new Methods
                 {
                     Write = classType.GetMethod("Write"),

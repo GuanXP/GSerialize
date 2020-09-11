@@ -12,16 +12,6 @@ namespace GSerialize
 {
     sealed class CodeGenerator
     {
-        public static string ClassNameGenerated(Type commandType)
-        {
-            return $"Serial_{commandType.FullName.Replace('.', '_').Replace('+', '_')}";
-        }
-
-        public static string FullClassNameGenerated(Type commandType)
-        {
-            return $"GSerialize.Generated.{ClassNameGenerated(commandType)}";
-        }
-
         static void LoadReferencedAssemblies(Assembly assembly, 
             List<MetadataReference> references, List<Assembly> loadeAssemblies)
         {
@@ -68,20 +58,17 @@ namespace GSerialize
         private static string GenerateCode(List<Type> types)
         {
             var code = new List<String>();
-            code.Add(@"
-using System.IO;
-using GSerialize;
-namespace GSerialize.Generated
-{"
-            );
+            code.Add("using System.IO;");
+            code.Add("using GSerialize;");
+            code.Add("namespace GSerialize.Generated {");
 
             foreach(var t in types)
             {
                 var classCode = GenerateCodeForType(t);
-                code.Add(classCode);
+                code.AddRange(classCode);
             }
 
-            code.Add("} //end of namespace");
+            code.Add("}");
 
             return CodeLinesToString(code);
         }
@@ -91,39 +78,58 @@ namespace GSerialize.Generated
             var builder = new StringBuilder();
             foreach (var s in codeLines)
             {
-                builder.AppendLine(s);
+                builder.Append(s);
             }
             return builder.ToString();
         }
 
-        private static string GenerateCodeForType(Type type)
+        private static List<string> GenerateCodeForType(Type type)
         {
             var code = new List<String>();
-            code.Add($"public class {ClassNameGenerated(type)}");
+            code.Add($"public class {type.GeneratedClassName()}");
             code.Add("{");
             code.AddRange(GenerateWriteMethod(type));
             code.AddRange(GenerateReadMethod(type));
-            code.Add("} //end of class");
+            code.Add("}");
 
-            return CodeLinesToString(code);
-        }
+            return code;
+        }        
 
-        private static string FullClassName(Type type)
+        static readonly List<StatementGenerator> s_statementGenerators = new List<StatementGenerator>
         {
-            return type.FullName.Replace('+', '.');
-        }
+            new PrimitiveStatementGenerator(typeof(UInt16), "UInt16"),
+            new PrimitiveStatementGenerator(typeof(Int16), "Int16"),
+            new PrimitiveStatementGenerator(typeof(UInt32), "UInt32"),
+            new PrimitiveStatementGenerator(typeof(Int32), "Int32"),
+            new PrimitiveStatementGenerator(typeof(UInt64), "UInt64"),
+            new PrimitiveStatementGenerator(typeof(Int64), "Int64"),
+            new PrimitiveStatementGenerator(typeof(Boolean), "Bool"),
+            new PrimitiveStatementGenerator(typeof(Char), "Char"),
+            new PrimitiveStatementGenerator(typeof(string), "String"),
+            new PrimitiveStatementGenerator(typeof(double), "Double"),
+            new PrimitiveStatementGenerator(typeof(float), "Float"),
+            new PrimitiveStatementGenerator(typeof(decimal), "Decimal"),
+            new PrimitiveStatementGenerator(typeof(DateTime), "DateTime"),
+            new PrimitiveStatementGenerator(typeof(Guid), "Guid"),
+            new SerializableStatementGenerator(),
+            new ArrayStatementGenerator(),
+            new ListStatementGenerator(),
+            new DictStatementGenerator(),
+            new EnumStatementGenerator(),
+            new NullableStatementGenerator(),
+        };
 
         private static List<string> GenerateWriteMethod(Type type)
         {
             var code = new List<string>();
-            code.Add($"public static void Write({FullClassName(type)} value, Serializer serializer)");
+            code.Add($"public static void Write({type.VisibleClassName()} value, Serializer serializer)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");
             foreach (var p in FindProperties(type))
             {                
                 code.AddRange(GeneratePropertyWrite(p));
             }
-            code.Add("} // end of Write");
+            code.Add("}");
             return code;
         }
 
@@ -146,134 +152,31 @@ namespace GSerialize.Generated
 
         private static List<string> GeneratePropertyWrite(PropertyFieldInfo p)
         {
-            var code = new List<string>();
-            if (p.MemberType == typeof(string))
+            foreach(var gen in s_statementGenerators)
             {
-                var statementWrite = $"packer.WriteString(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
+                if (gen.Matches(p))
+                {
+                    return WrittingCode(p, gen.WrittingStatement(p));
+                }
             }
-            else if (p.MemberType == typeof(Boolean))
-            {
-                var statementWrite = $"packer.WriteBool(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(Int64))
-            {
-                var statementWrite = $"packer.WriteInt64(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(UInt64))
-            {
-                var statementWrite = $"packer.WriteUInt64(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(Int32))
-            {
-                var statementWrite = $"packer.WriteInt32(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(UInt32))
-            {
-                var statementWrite = $"packer.WriteUInt32(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(Int16))
-            {
-                var statementWrite = $"packer.WriteInt16(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(UInt16))
-            {
-                var statementWrite = $"packer.WriteUInt16(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(double))
-            {
-                var statementWrite = $"packer.WriteDouble(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(float))
-            {
-                var statementWrite = $"packer.WriteFloat(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(Char))
-            {
-                var statementWrite = $"packer.WriteChar(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(Decimal))
-            {
-                var statementWrite = $"packer.WriteDecimal(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(Guid))
-            {
-                var statementWrite = $"packer.WriteGuid(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType == typeof(DateTime))
-            {
-                var statementWrite = $"packer.WriteDateTime(value.{p.MemberName});";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType.IsDefined(typeof(GSerializableAttribute), inherit: false))
-            {
-                var statementWrite = $"{ClassNameGenerated(p.MemberType)}.Write(value.{p.MemberName}, serializer);";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType.Name =="List`1" && p.MemberType.IsGenericType)
-            {
-                var itemType = p.MemberType.GetGenericArguments()[0];
-                var statementWrite = $"CollectionPacker.WriteList<{FullClassName(itemType)}>(value.{p.MemberName}, serializer);";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType.Name == "Nullable`1" && p.MemberType.IsGenericType)
-            {
-                var valueType = p.MemberType.GetGenericArguments()[0];
-                var statementWrite = $"CollectionPacker.WriteNullable<{FullClassName(valueType)}>(value.{p.MemberName}, serializer);";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType.Name == "Dictionary`2" && p.MemberType.IsGenericType)
-            {
-                var keyType = p.MemberType.GetGenericArguments()[0];
-                var valueType = p.MemberType.GetGenericArguments()[1];
-                var statementWrite = $"CollectionPacker.WriteDict<{FullClassName(keyType)},{FullClassName(valueType)}>(value.{p.MemberName}, serializer);";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType.IsArray && p.MemberType.HasElementType)
-            {
-                var elementType = p.MemberType.GetElementType();
-                var statementWrite = $"CollectionPacker.WriteArray<{FullClassName(elementType)}>(value.{p.MemberName}, serializer);";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else if (p.MemberType.IsEnum)
-            {
-                var statementWrite = $"CollectionPacker.WriteEnum<{FullClassName(p.MemberType)}>(value.{p.MemberName}, serializer);";
-                code.AddRange(WrittingCode(p, statementWrite));
-            }
-            else
-            {
-                throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
-            }
-            return code;
+            throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
         }
 
         private static List<string> GenerateReadMethod(Type type)
         {
             var code = new List<string>();
-            var fullTypeName = FullClassName(type);
-            code.Add($"public static {fullTypeName} Read(Serializer serializer)");
+            var ReturnClassName = type.VisibleClassName();
+            code.Add($"public static {ReturnClassName} Read(Serializer serializer)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");           
-            code.Add($"return new {fullTypeName}");
+            code.Add($"return new {ReturnClassName}");
             code.Add("{");
             foreach (var p in FindProperties(type))
             {                
-                code.AddRange(GeneratePropertyRead(p));
+                code.Add(GeneratePropertyRead(p));
             }
             code.Add("};");
-            code.Add("} // end of Read");
+            code.Add("}");
             return code;
         }
 
@@ -289,105 +192,16 @@ namespace GSerialize.Generated
             }
         }
 
-        private static List<string> GeneratePropertyRead(PropertyFieldInfo p)
+        private static string GeneratePropertyRead(PropertyFieldInfo p)
         {
-            var code = new List<string>();
-            if (p.MemberType == typeof(string))
+            foreach(var gen in s_statementGenerators)
             {
-                code.Add(ReadingCode(p, "packer.ReadString()"));
+                if (gen.Matches(p))
+                {
+                    return ReadingCode(p, gen.ReadingStatement(p));
+                }
             }
-            else if (p.MemberType == typeof(Boolean))
-            {
-                code.Add(ReadingCode(p, "packer.ReadBool()"));
-            }
-            else if (p.MemberType == typeof(Int64))
-            {
-                code.Add(ReadingCode(p, "packer.ReadInt64()"));
-            }
-            else if (p.MemberType == typeof(UInt64))
-            {
-                code.Add(ReadingCode(p, "packer.ReadUInt64()"));
-            }
-            else if (p.MemberType == typeof(Int32))
-            {
-                code.Add(ReadingCode(p, "packer.ReadInt32()"));
-            }
-            else if (p.MemberType == typeof(UInt32))
-            {
-                code.Add(ReadingCode(p, "packer.ReadUInt32()"));
-            }
-            else if (p.MemberType == typeof(Int16))
-            {
-                code.Add(ReadingCode(p, "packer.ReadInt16()"));
-            }
-            else if (p.MemberType == typeof(UInt16))
-            {
-                code.Add(ReadingCode(p, "packer.ReadUInt16()"));
-            }
-            else if (p.MemberType == typeof(double))
-            {
-                code.Add(ReadingCode(p, "packer.ReadDouble()"));
-            }
-            else if (p.MemberType == typeof(float))
-            {
-                code.Add(ReadingCode(p, "packer.ReadFloat()"));
-            }
-            else if (p.MemberType == typeof(DateTime))
-            {
-                code.Add(ReadingCode(p, "packer.ReadDateTime()"));
-            }
-            else if (p.MemberType == typeof(Guid))
-            {
-                code.Add(ReadingCode(p, "packer.ReadGuid()"));
-            }
-            else if (p.MemberType == typeof(Char))
-            {
-                code.Add(ReadingCode(p, "packer.ReadChar()"));
-            }
-            else if (p.MemberType == typeof(Decimal))
-            {
-                code.Add(ReadingCode(p, "packer.ReadDecimal()"));
-            }
-            else if (p.MemberType.IsDefined(typeof(GSerializableAttribute), inherit: false))
-            {
-                var statementRead = $"{ClassNameGenerated(p.MemberType)}.Read(serializer)";
-                code.Add(ReadingCode(p, statementRead));
-            }
-            else if (p.MemberType.Name == "List`1" && p.MemberType.IsGenericType)
-            {
-                var itemType = p.MemberType.GetGenericArguments()[0];
-                var statementRead = $"CollectionPacker.ReadList<{FullClassName(itemType)}>(serializer)";
-                code.Add(ReadingCode(p, statementRead));
-            }
-            else if (p.MemberType.Name == "Nullable`1" && p.MemberType.IsGenericType)
-            {
-                var valueType = p.MemberType.GetGenericArguments()[0];
-                var statementRead = $"CollectionPacker.ReadNullable<{FullClassName(valueType)}>(serializer)";
-                code.Add(ReadingCode(p, statementRead));
-            }
-            else if (p.MemberType.Name == "Dictionary`2" && p.MemberType.IsGenericType)
-            {
-                var keyType = p.MemberType.GetGenericArguments()[0];
-                var valueType = p.MemberType.GetGenericArguments()[1];
-                var statementRead = $"CollectionPacker.ReadDict<{FullClassName(keyType)},{FullClassName(valueType)}>(serializer)";
-                code.Add(ReadingCode(p, statementRead));
-            }
-            else if (p.MemberType.IsArray && p.MemberType.HasElementType)
-            {
-                var elementType = p.MemberType.GetElementType();
-                var statementRead = $"CollectionPacker.ReadArray<{FullClassName(elementType)}>(serializer)";
-                code.Add(ReadingCode(p, statementRead));
-            }
-            else if (p.MemberType.IsEnum)
-            {
-                var statementRead = $"CollectionPacker.ReadEnum<{FullClassName(p.MemberType)}>(serializer)";
-                code.Add(ReadingCode(p, statementRead));
-            }
-            else
-            {
-                throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
-            }
-            return code;
+            throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
         }
 
         private static List<PropertyFieldInfo> FindProperties(Type type)
@@ -420,9 +234,7 @@ namespace GSerialize.Generated
                 });
             }
             return result;
-        }
-
-        
+        }        
     }
 
     static class MemberInfoExtension
@@ -438,10 +250,179 @@ namespace GSerialize.Generated
         }
     }
 
+    static class TypeExtension
+    {
+        internal static string GeneratedClassName(this Type commandType)
+        {
+            return $"Serial_{commandType.FullName.Replace('.', '_').Replace('+', '_')}";
+        }
+
+        internal static string GeneratedFullClassName(this Type commandType)
+        {
+            return $"GSerialize.Generated.{commandType.GeneratedClassName()}";
+        }
+
+        internal static string VisibleClassName(this Type type)
+        {
+            return type.FullName.Replace('+', '.');
+        }
+    }
+
     class PropertyFieldInfo
     {
         internal Type MemberType;
         internal string MemberName;
         internal bool IsOptional;
+    }
+
+    interface StatementGenerator
+    {
+        bool Matches(PropertyFieldInfo p);
+        string ReadingStatement(PropertyFieldInfo p);
+        string WrittingStatement(PropertyFieldInfo p);
+    }
+
+    class PrimitiveStatementGenerator : StatementGenerator
+    {
+        private readonly string _packerTypeName;
+        private readonly Type _matchedType;
+        internal PrimitiveStatementGenerator(Type matchedType, string packerTypeName)
+        {
+            _packerTypeName = packerTypeName;
+            _matchedType = matchedType;
+        }
+
+        public bool Matches(PropertyFieldInfo p)
+        {
+            return p.MemberType == _matchedType;
+        }
+
+        public string ReadingStatement(PropertyFieldInfo p)
+        {
+            return $"packer.Read{_packerTypeName}()";
+        }
+
+        public string WrittingStatement(PropertyFieldInfo p)
+        {
+            return $"packer.Write{_packerTypeName}(value.{p.MemberName});";
+        }
+    }
+
+    class SerializableStatementGenerator : StatementGenerator
+    {
+        public bool Matches(PropertyFieldInfo p)
+        {
+            return p.MemberType.IsDefined(typeof(GSerializableAttribute), inherit: false);
+        }
+
+        public string ReadingStatement(PropertyFieldInfo p)
+        {
+            return $"{p.MemberType.GeneratedClassName()}.Read(serializer)";
+        }
+
+        public string WrittingStatement(PropertyFieldInfo p)
+        {
+            return $"{p.MemberType.GeneratedClassName()}.Write(value.{p.MemberName}, serializer);";
+        }
+    }
+
+    class ListStatementGenerator : StatementGenerator
+    {
+        public bool Matches(PropertyFieldInfo p)
+        {
+            return p.MemberType.Name == "List`1" && p.MemberType.IsGenericType;
+        }
+
+        public string ReadingStatement(PropertyFieldInfo p)
+        {
+            var itemType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.ReadList<{itemType.VisibleClassName()}>(serializer)";
+        }
+
+        public string WrittingStatement(PropertyFieldInfo p)
+        {
+            var itemType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.WriteList<{itemType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+    }
+
+    class ArrayStatementGenerator : StatementGenerator
+    {
+        public bool Matches(PropertyFieldInfo p)
+        {
+            return p.MemberType.IsArray && p.MemberType.HasElementType;
+        }
+
+        public string ReadingStatement(PropertyFieldInfo p)
+        {
+            var elementType = p.MemberType.GetElementType();
+            return $"CollectionPacker.ReadArray<{elementType.VisibleClassName()}>(serializer)";
+        }
+
+        public string WrittingStatement(PropertyFieldInfo p)
+        {
+            var elementType = p.MemberType.GetElementType();
+            return $"CollectionPacker.WriteArray<{elementType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+    }
+
+    class DictStatementGenerator : StatementGenerator
+    {
+        public bool Matches(PropertyFieldInfo p)
+        {
+            return p.MemberType.Name == "Dictionary`2" && p.MemberType.IsGenericType;
+        }
+
+        public string ReadingStatement(PropertyFieldInfo p)
+        {
+            var keyType = p.MemberType.GetGenericArguments()[0];
+            var valueType = p.MemberType.GetGenericArguments()[1];
+            return $"CollectionPacker.ReadDict<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(serializer)";
+        }
+
+        public string WrittingStatement(PropertyFieldInfo p)
+        {
+            var keyType = p.MemberType.GetGenericArguments()[0];
+            var valueType = p.MemberType.GetGenericArguments()[1];
+            return $"CollectionPacker.WriteDict<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+    }
+
+    class EnumStatementGenerator : StatementGenerator
+    {
+        public bool Matches(PropertyFieldInfo p)
+        {
+            return p.MemberType.IsEnum;
+        }
+
+        public string ReadingStatement(PropertyFieldInfo p)
+        {
+            return $"CollectionPacker.ReadEnum<{p.MemberType.VisibleClassName()}>(serializer)";
+        }
+
+        public string WrittingStatement(PropertyFieldInfo p)
+        {
+            return $"CollectionPacker.WriteEnum<{p.MemberType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+    }
+
+    class NullableStatementGenerator : StatementGenerator
+    {
+        public bool Matches(PropertyFieldInfo p)
+        {
+            return p.MemberType.Name == "Nullable`1" && p.MemberType.IsGenericType;
+        }
+
+        public string ReadingStatement(PropertyFieldInfo p)
+        {
+            var valueType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.ReadNullable<{valueType.VisibleClassName()}>(serializer)";
+        }
+
+        public string WrittingStatement(PropertyFieldInfo p)
+        {
+            var valueType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.WriteNullable<{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
     }
 }
