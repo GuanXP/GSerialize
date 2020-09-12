@@ -93,7 +93,7 @@ The field/property can be one of following
 ```
 
 ## Behavior
-When mehtod serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they doesn't exist in memory.
+When method serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they doesn't exist in memory.
 
 All other customized serializable types in the same assembly will get their generated serialization codes at same time.
 
