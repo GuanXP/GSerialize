@@ -91,6 +91,49 @@ The field/property can be one of following
         private string PrivateField; //none public field/property will be ignored
     }
 ```
+#### GSerialize provides async APIs that can be used like below
+```C#
+using var mem = new MemoryStream();
+var serializer = new Serializer(mem);
+
+var item1 = new OptionalFieldUnit();
+
+var excepted = false;
+try
+{
+    await serializer.SerializeAsync(item1);
+} 
+catch(Exception)
+{
+    excepted = true;
+}
+Debug.Assert(excepted); //required field/property can NOT be null
+
+item1.RequiredField = "hello";
+item1.FullAccessibleProperty = "property";
+mem.Seek(0, SeekOrigin.Begin);
+await serializer.SerializeAsync(item1);
+mem.Seek(0, SeekOrigin.Begin);
+var item2 = await serializer.DeserializeAsync<OptionalFieldUnit>();
+Debug.Assert(item1.RequiredField == item2.RequiredField);
+Debug.Assert(item1.FullAccessibleProperty == item2.FullAccessibleProperty);
+Debug.Assert(item2.OptionalField == null);    
+Debug.Assert(item2.IgnoredField == null);
+Debug.Assert(item2.PrivateField == null);
+Debug.Assert(item2.ReadOnlyProperty == null);
+
+item1.OptionalField = "now";
+item1.IgnoredField = "Ignored";
+item1.PrivateField = "Private";
+mem.Seek(0, SeekOrigin.Begin);
+await serializer.SerializeAsync(item1);
+mem.Seek(0, SeekOrigin.Begin);
+item2 = await serializer.DeserializeAsync<OptionalFieldUnit>();
+Debug.Assert(item1.OptionalField == item2.OptionalField);
+Debug.Assert(item2.IgnoredField == null);
+Debug.Assert(item2.PrivateField == null);
+Debug.Assert(item2.ReadOnlyProperty == null);
+```
 
 ## Behavior
 When method serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they doesn't exist in memory.

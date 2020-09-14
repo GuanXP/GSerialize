@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace GSerialize
 {
@@ -12,6 +13,8 @@ namespace GSerialize
         {
             internal MethodInfo Write;
             internal MethodInfo Read;
+            internal MethodInfo WriteAsync;
+            internal MethodInfo ReadAsync;
         }
 
         private static Dictionary<Type, Methods> TypeMethodsMap = new Dictionary<Type, Methods>();
@@ -23,78 +26,104 @@ namespace GSerialize
             {
                 Read = typeof(Packer).GetMethod("ReadInt32"),
                 Write = typeof(Packer).GetMethod("WriteInt32"),
+                ReadAsync = typeof(Packer).GetMethod("ReadInt32Async"),
+                WriteAsync = typeof(Packer).GetMethod("WriteInt32Async"),
             };
 
             PrimitiveTypeMethodsMap[typeof(UInt32)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadUInt32"),
                 Write = typeof(Packer).GetMethod("WriteUInt32"),
+                ReadAsync = typeof(Packer).GetMethod("ReadUInt32Async"),
+                WriteAsync = typeof(Packer).GetMethod("WriteUInt32Async"),
             };
 
             PrimitiveTypeMethodsMap[typeof(Int64)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadInt64"),
                 Write = typeof(Packer).GetMethod("WriteInt64"),
+                ReadAsync = typeof(Packer).GetMethod("ReadInt64Async"),
+                WriteAsync = typeof(Packer).GetMethod("WriteInt64Async"),
             };
 
             PrimitiveTypeMethodsMap[typeof(UInt64)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadUInt64"),
                 Write = typeof(Packer).GetMethod("WriteUInt64"),
+                ReadAsync = typeof(Packer).GetMethod("ReadUInt64Async"),
+                WriteAsync = typeof(Packer).GetMethod("WriteUInt64Async"),
             };
 
             PrimitiveTypeMethodsMap[typeof(Int16)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadInt16"),
                 Write = typeof(Packer).GetMethod("WriteInt16"),
+                ReadAsync = typeof(Packer).GetMethod("ReadInt16Async"),
+                WriteAsync = typeof(Packer).GetMethod("WriteInt16Async"),
             };
 
             PrimitiveTypeMethodsMap[typeof(UInt16)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadUInt16"),
                 Write = typeof(Packer).GetMethod("WriteUInt16"),
+                ReadAsync = typeof(Packer).GetMethod("ReadUInt16Async"),
+                WriteAsync = typeof(Packer).GetMethod("WriteUInt16Async"),
             };
 
             PrimitiveTypeMethodsMap[typeof(string)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadString"),
                 Write = typeof(Packer).GetMethod("WriteString"),
+                ReadAsync = typeof(Packer).GetMethod("ReadStringAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteStringAsync"),
             };
 
             PrimitiveTypeMethodsMap[typeof(Double)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadDouble"),
                 Write = typeof(Packer).GetMethod("WriteDouble"),
+                ReadAsync = typeof(Packer).GetMethod("ReadDoubleAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteDoubleAsync"),
             };
 
             PrimitiveTypeMethodsMap[typeof(float)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadFloat"),
                 Write = typeof(Packer).GetMethod("WriteFloat"),
+                ReadAsync = typeof(Packer).GetMethod("ReadFloatAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteFloatAsync"),
             };
 
             PrimitiveTypeMethodsMap[typeof(DateTime)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadDateTime"),
                 Write = typeof(Packer).GetMethod("WriteDateTime"),
+                ReadAsync = typeof(Packer).GetMethod("ReadDateTimeAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteDateTimeAsync"),
             };
 
             PrimitiveTypeMethodsMap[typeof(Guid)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadGuid"),
                 Write = typeof(Packer).GetMethod("WriteGuid"),
+                ReadAsync = typeof(Packer).GetMethod("ReadGuidAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteGuidAsync"),
             };
 
             PrimitiveTypeMethodsMap[typeof(Char)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadChar"),
                 Write = typeof(Packer).GetMethod("WriteChar"),
+                ReadAsync = typeof(Packer).GetMethod("ReadCharAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteCharAsync"),
             };
 
             PrimitiveTypeMethodsMap[typeof(Decimal)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadDecimal"),
                 Write = typeof(Packer).GetMethod("WriteDecimal"),
+                ReadAsync = typeof(Packer).GetMethod("ReadDecimalAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteDecimalAsync"),
             };
         }
 
@@ -117,6 +146,8 @@ namespace GSerialize
                 {
                     Write = classType.GetMethod("Write"),
                     Read = classType.GetMethod("Read"),
+                    WriteAsync = classType.GetMethod("WriteAsync"),
+                    ReadAsync = classType.GetMethod("ReadAsync"),
                 };
                 mapCopy[t] = methods;
             }
@@ -205,6 +236,24 @@ namespace GSerialize
             }
         }
 
+        /// <summary>
+        /// Serialize an object asynchronously into a stream
+        /// </summary>
+        /// <typeparam name="T">the type of object that will be serialized</typeparam>
+        /// <param name="value">the object that will be serialized</param>
+        public Task SerializeAsync<T>(T value)
+        {
+            MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
+            if (packerMethods != null)
+            {
+                return (Task)packerMethods.WriteAsync.Invoke(Packer, new object[] { value });
+            }
+            else
+            {
+                return (Task)methods.WriteAsync.Invoke(null, new object[] { value, this });
+            }
+        }
+
         internal void SerializeEnumerable<T>(IEnumerable<T> value)
         {
             MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
@@ -221,6 +270,26 @@ namespace GSerialize
                 foreach (var item in value)
                 {
                     methods.Write.Invoke(null, new object[] { item, this });
+                }
+            }
+        }
+
+        internal async Task SerializeEnumerableAsync<T>(IEnumerable<T> value)
+        {
+            MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
+            await Packer.WriteInt32Async(value.Count());
+            if (packerMethods != null)
+            {
+                foreach (var item in value)
+                {
+                    await (Task)packerMethods.WriteAsync.Invoke(Packer, new object[] { item });
+                }
+            }
+            else
+            {
+                foreach (var item in value)
+                {
+                    await (Task)methods.WriteAsync.Invoke(null, new object[] { item, this });
                 }
             }
         }
@@ -261,6 +330,46 @@ namespace GSerialize
                 {
                     methodsK.Write.Invoke(null, new object[] { item.Key, this });
                     packerMethodsV.Write.Invoke(Packer, new object[] { item.Value });
+                }
+            }
+        }
+
+        internal async Task SerializeDictAsync<K,V>(Dictionary<K,V> value)
+        {
+            MethodsForType(typeof(K), out Methods packerMethodsK, out Methods methodsK);
+            MethodsForType(typeof(V), out Methods packerMethodsV, out Methods methodsV);
+
+            await Packer.WriteInt32Async(value.Count());
+            if (packerMethodsK != null && packerMethodsV != null)
+            {
+                foreach (var item in value)
+                {
+                    await (Task)packerMethodsK.WriteAsync.Invoke(Packer, new object[] { item.Key });
+                    await (Task)packerMethodsV.WriteAsync.Invoke(Packer, new object[] { item.Value });
+                }
+            }
+            else if (packerMethodsK != null && methodsV != null)
+            {
+                foreach (var item in value)
+                {
+                    await (Task)packerMethodsK.WriteAsync.Invoke(Packer, new object[] { item.Key });
+                    await (Task)methodsV.WriteAsync.Invoke(null, new object[] { item.Value, this });
+                }
+            }
+            else if (methodsK != null && methodsV != null)
+            {
+                foreach (var item in value)
+                {
+                    await (Task)methodsK.WriteAsync.Invoke(null, new object[] { item.Key, this });
+                    await (Task)methodsV.WriteAsync.Invoke(null, new object[] { item.Value, this });
+                }
+            }
+            else
+            {
+                foreach (var item in value)
+                {
+                    await (Task)methodsK.WriteAsync.Invoke(null, new object[] { item.Key, this });
+                    await (Task)packerMethodsV.WriteAsync.Invoke(Packer, new object[] { item.Value });
                 }
             }
         }
@@ -314,6 +423,56 @@ namespace GSerialize
             return dict;
         }
 
+        internal async Task<Dictionary<K, V>> DeserializeDictAsync<K, V>()
+        {
+            MethodsForType(typeof(K), out Methods packerMethodsK, out Methods methodsK);
+            MethodsForType(typeof(V), out Methods packerMethodsV, out Methods methodsV);
+
+            var count = await Packer.ReadInt32Async();
+            var dict = new Dictionary<K, V>(capacity: count);
+            if (packerMethodsK != null && packerMethodsV != null)
+            {
+                var args = Array.Empty<Object>();
+                for (var i = 0; i < count; ++i)
+                {
+                    var k = await (Task<K>)packerMethodsK.ReadAsync.Invoke(Packer, args);
+                    var v = await (Task<V>)packerMethodsV.ReadAsync.Invoke(Packer, args);
+                    dict[k] = v;
+                }
+            }
+            else if (packerMethodsK != null && methodsV != null)
+            {
+                var args = Array.Empty<Object>();
+                for (var i = 0; i < count; ++i)
+                {
+                    var k = await (Task<K>)packerMethodsK.ReadAsync.Invoke(Packer, args);
+                    var v = await (Task<V>)methodsV.ReadAsync.Invoke(null, _paramsReading);
+                    dict[k] = v;
+                }
+            }
+            else if (methodsK != null && methodsV != null)
+            {
+                for (var i = 0; i < count; ++i)
+                {
+                    var k = await (Task<K>)methodsK.ReadAsync.Invoke(null, _paramsReading);
+                    var v = await (Task<V>)methodsV.ReadAsync.Invoke(null, _paramsReading);
+                    dict[k] = v;
+                }
+            }
+            else
+            {
+                var args = Array.Empty<Object>();
+                for (var i = 0; i < count; ++i)
+                {
+                    var k = await (Task<K>)methodsK.ReadAsync.Invoke(null, _paramsReading);
+                    var v = await (Task<V>)packerMethodsV.ReadAsync.Invoke(Packer, args);
+                    dict[k] = v;
+                }
+            }
+            return dict;
+        }
+
+
         /// <summary>
         /// deserialize an object as type T from a stream. 
         /// </summary>
@@ -330,6 +489,25 @@ namespace GSerialize
             else
             {
                 return (T)methods.Read.Invoke(null, _paramsReading);
+            }
+        }
+
+        /// <summary>
+        /// deserialize an object asynchronously as type T from a stream. 
+        /// </summary>
+        /// <typeparam name="T">The object type that will be deserialize</typeparam>
+        /// <returns>The deserialized object</returns>
+        /// <exception cref="System.IO.IOException">The input stream closed</exception>
+        public Task<T> DeserializeAsync<T>()
+        {
+            MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
+            if (packerMethods != null)
+            {
+                return (Task<T>)packerMethods.ReadAsync.Invoke(Packer, Array.Empty<Object>());
+            }
+            else
+            {
+                return (Task<T>)methods.ReadAsync.Invoke(null, _paramsReading);
             }
         }
 
@@ -353,6 +531,31 @@ namespace GSerialize
                 for (var i = 0; i < count; ++i)
                 {
                     list.Add((T)methods.Read.Invoke(null, _paramsReading));
+                }
+            }
+            return list;
+        }
+
+        internal async Task<List<T>> DeserializeListAsync<T>()
+        {
+            MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
+            var type = typeof(T);
+            var count = await Packer.ReadInt32Async();
+            var list = new List<T>(capacity: count);
+
+            if (packerMethods != null)
+            {
+                var args = Array.Empty<Object>();
+                for (var i = 0; i < count; ++i)
+                {
+                    list.Add(await (Task<T>)packerMethods.ReadAsync.Invoke(Packer, args));
+                }
+            }
+            else
+            {
+                for (var i = 0; i < count; ++i)
+                {
+                    list.Add(await (Task<T>)methods.ReadAsync.Invoke(null, _paramsReading));
                 }
             }
             return list;

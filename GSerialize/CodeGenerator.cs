@@ -60,7 +60,8 @@ namespace GSerialize
             var code = new List<String>();
             code.Add("using System.IO;");
             code.Add("using GSerialize;");
-            code.Add("namespace GSerialize.Generated {");
+            code.Add("using System.Threading.Tasks;");
+            code.Add("namespace GSerialize.Generated {");            
 
             foreach(var t in types)
             {
@@ -130,6 +131,15 @@ namespace GSerialize
                 code.AddRange(GeneratePropertyWrite(p));
             }
             code.Add("}");
+
+            code.Add($"public static async Task WriteAsync({type.VisibleClassName()} value, Serializer serializer)");
+            code.Add("{");
+            code.Add("var packer = serializer.Packer;");
+            foreach (var p in FindProperties(type))
+            {                
+                code.AddRange(GeneratePropertyAsyncWrite(p));
+            }
+            code.Add("}");
             return code;
         }
 
@@ -150,6 +160,23 @@ namespace GSerialize
             return code;
         }
 
+        private static List<string> WrittingAsyncCode(PropertyFieldInfo p, string statementWrite)
+        {
+            var code = new List<string>();
+            if (p.IsOptional)
+            {
+                code.Add($"if (value.{p.MemberName} == null) await packer.WriteBoolAsync(false);");
+                code.Add("else { await packer.WriteBoolAsync(true);");
+                code.Add($"await {statementWrite}");
+                code.Add("}");
+            }
+            else
+            {
+                code.Add($"await {statementWrite}");
+            }
+            return code;
+        }
+
         private static List<string> GeneratePropertyWrite(PropertyFieldInfo p)
         {
             foreach(var gen in s_statementGenerators)
@@ -157,6 +184,18 @@ namespace GSerialize
                 if (gen.Matches(p))
                 {
                     return WrittingCode(p, gen.WrittingStatement(p));
+                }
+            }
+            throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
+        }
+
+        private static List<string> GeneratePropertyAsyncWrite(PropertyFieldInfo p)
+        {
+            foreach(var gen in s_statementGenerators)
+            {
+                if (gen.Matches(p))
+                {
+                    return WrittingAsyncCode(p, gen.WrittingAsyncStatement(p));
                 }
             }
             throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
@@ -177,6 +216,18 @@ namespace GSerialize
             }
             code.Add("};");
             code.Add("}");
+
+            code.Add($"public static async Task<{ReturnClassName}> ReadAsync(Serializer serializer)");
+            code.Add("{");
+            code.Add("var packer = serializer.Packer;");           
+            code.Add($"return new {ReturnClassName}");
+            code.Add("{");
+            foreach (var p in FindProperties(type))
+            {                
+                code.Add(GeneratePropertyAsyncRead(p));
+            }
+            code.Add("};");
+            code.Add("}");
             return code;
         }
 
@@ -192,6 +243,18 @@ namespace GSerialize
             }
         }
 
+        private static string ReadingAsyncCode(PropertyFieldInfo p, string statementRead)
+        {
+            if (p.IsOptional)
+            {
+                return $"{p.MemberName} = ((await packer.ReadBoolAsync()) ? await {statementRead} : null),";
+            }
+            else
+            {
+               return $"{p.MemberName} = await {statementRead},";
+            }
+        }
+
         private static string GeneratePropertyRead(PropertyFieldInfo p)
         {
             foreach(var gen in s_statementGenerators)
@@ -199,6 +262,18 @@ namespace GSerialize
                 if (gen.Matches(p))
                 {
                     return ReadingCode(p, gen.ReadingStatement(p));
+                }
+            }
+            throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
+        }
+
+        private static string GeneratePropertyAsyncRead(PropertyFieldInfo p)
+        {
+            foreach(var gen in s_statementGenerators)
+            {
+                if (gen.Matches(p))
+                {
+                    return ReadingAsyncCode(p, gen.ReadingAsyncStatement(p));
                 }
             }
             throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
@@ -280,6 +355,8 @@ namespace GSerialize
         bool Matches(PropertyFieldInfo p);
         string ReadingStatement(PropertyFieldInfo p);
         string WrittingStatement(PropertyFieldInfo p);
+        string ReadingAsyncStatement(PropertyFieldInfo p);
+        string WrittingAsyncStatement(PropertyFieldInfo p);
     }
 
     class PrimitiveStatementGenerator : StatementGenerator
@@ -302,9 +379,19 @@ namespace GSerialize
             return $"packer.Read{_packerTypeName}()";
         }
 
+        public string ReadingAsyncStatement(PropertyFieldInfo p)
+        {
+            return $"packer.Read{_packerTypeName}Async()";
+        }
+
         public string WrittingStatement(PropertyFieldInfo p)
         {
             return $"packer.Write{_packerTypeName}(value.{p.MemberName});";
+        }
+
+        public string WrittingAsyncStatement(PropertyFieldInfo p)
+        {
+            return $"packer.Write{_packerTypeName}Async(value.{p.MemberName});";
         }
     }
 
@@ -320,9 +407,19 @@ namespace GSerialize
             return $"{p.MemberType.GeneratedClassName()}.Read(serializer)";
         }
 
+        public string ReadingAsyncStatement(PropertyFieldInfo p)
+        {
+            return $"{p.MemberType.GeneratedClassName()}.ReadAsync(serializer)";
+        }
+
         public string WrittingStatement(PropertyFieldInfo p)
         {
             return $"{p.MemberType.GeneratedClassName()}.Write(value.{p.MemberName}, serializer);";
+        }
+
+        public string WrittingAsyncStatement(PropertyFieldInfo p)
+        {
+            return $"{p.MemberType.GeneratedClassName()}.WriteAsync(value.{p.MemberName}, serializer);";
         }
     }
 
@@ -339,10 +436,22 @@ namespace GSerialize
             return $"CollectionPacker.ReadList<{itemType.VisibleClassName()}>(serializer)";
         }
 
+        public string ReadingAsyncStatement(PropertyFieldInfo p)
+        {
+            var itemType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.ReadListAsync<{itemType.VisibleClassName()}>(serializer)";
+        }
+
         public string WrittingStatement(PropertyFieldInfo p)
         {
             var itemType = p.MemberType.GetGenericArguments()[0];
             return $"CollectionPacker.WriteList<{itemType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+
+        public string WrittingAsyncStatement(PropertyFieldInfo p)
+        {
+            var itemType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.WriteListAsync<{itemType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
         }
     }
 
@@ -359,10 +468,22 @@ namespace GSerialize
             return $"CollectionPacker.ReadArray<{elementType.VisibleClassName()}>(serializer)";
         }
 
+        public string ReadingAsyncStatement(PropertyFieldInfo p)
+        {
+            var elementType = p.MemberType.GetElementType();
+            return $"CollectionPacker.ReadArrayAsync<{elementType.VisibleClassName()}>(serializer)";
+        }
+
         public string WrittingStatement(PropertyFieldInfo p)
         {
             var elementType = p.MemberType.GetElementType();
             return $"CollectionPacker.WriteArray<{elementType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+
+        public string WrittingAsyncStatement(PropertyFieldInfo p)
+        {
+            var elementType = p.MemberType.GetElementType();
+            return $"CollectionPacker.WriteArrayAsync<{elementType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
         }
     }
 
@@ -380,11 +501,25 @@ namespace GSerialize
             return $"CollectionPacker.ReadDict<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(serializer)";
         }
 
+        public string ReadingAsyncStatement(PropertyFieldInfo p)
+        {
+            var keyType = p.MemberType.GetGenericArguments()[0];
+            var valueType = p.MemberType.GetGenericArguments()[1];
+            return $"CollectionPacker.ReadDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(serializer)";
+        }
+
         public string WrittingStatement(PropertyFieldInfo p)
         {
             var keyType = p.MemberType.GetGenericArguments()[0];
             var valueType = p.MemberType.GetGenericArguments()[1];
             return $"CollectionPacker.WriteDict<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+
+        public string WrittingAsyncStatement(PropertyFieldInfo p)
+        {
+            var keyType = p.MemberType.GetGenericArguments()[0];
+            var valueType = p.MemberType.GetGenericArguments()[1];
+            return $"CollectionPacker.WriteDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
         }
     }
 
@@ -400,9 +535,19 @@ namespace GSerialize
             return $"CollectionPacker.ReadEnum<{p.MemberType.VisibleClassName()}>(serializer)";
         }
 
+        public string ReadingAsyncStatement(PropertyFieldInfo p)
+        {
+            return $"CollectionPacker.ReadEnumAsync<{p.MemberType.VisibleClassName()}>(serializer)";
+        }
+
         public string WrittingStatement(PropertyFieldInfo p)
         {
             return $"CollectionPacker.WriteEnum<{p.MemberType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+
+        public string WrittingAsyncStatement(PropertyFieldInfo p)
+        {
+            return $"CollectionPacker.WriteEnumAsync<{p.MemberType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
         }
     }
 
@@ -419,10 +564,22 @@ namespace GSerialize
             return $"CollectionPacker.ReadNullable<{valueType.VisibleClassName()}>(serializer)";
         }
 
+        public string ReadingAsyncStatement(PropertyFieldInfo p)
+        {
+            var valueType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.ReadNullableAsync<{valueType.VisibleClassName()}>(serializer)";
+        }
+
         public string WrittingStatement(PropertyFieldInfo p)
         {
             var valueType = p.MemberType.GetGenericArguments()[0];
             return $"CollectionPacker.WriteNullable<{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+        }
+
+        public string WrittingAsyncStatement(PropertyFieldInfo p)
+        {
+            var valueType = p.MemberType.GetGenericArguments()[0];
+            return $"CollectionPacker.WriteNullableAsync<{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
         }
     }
 }
