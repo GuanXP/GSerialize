@@ -13,29 +13,29 @@ namespace GSerialize
     sealed class CodeGenerator
     {
         static void LoadReferencedAssemblies(Assembly assembly, 
-            List<MetadataReference> references, List<Assembly> loadeAssemblies)
+            List<MetadataReference> references, List<Assembly> loadedAssemblies)
         {
-            if (loadeAssemblies.FirstOrDefault(x => x == assembly) != null) return;
+            if (loadedAssemblies.FirstOrDefault(x => x == assembly) != null) return;
 
-            loadeAssemblies.Add(assembly);
+            loadedAssemblies.Add(assembly);
             references.Add(MetadataReference.CreateFromFile(assembly.Location));
             foreach (var refName in assembly.GetReferencedAssemblies())
             {
                 var refAssembly = Assembly.Load(refName);
-                LoadReferencedAssemblies(refAssembly, references, loadeAssemblies);
+                LoadReferencedAssemblies(refAssembly, references, loadedAssemblies);
             }
         }
 
         public static Assembly CompileSerialable(
             List<Type> types, 
-            List<Assembly> referencedAsseblies,
+            List<Assembly> referencedAssemblies,
             string generatedAssemblyName)
         {
             var code = GenerateCode(types);
             var tree = SyntaxFactory.ParseSyntaxTree(code);
 
             var references = new List<MetadataReference>();
-            foreach(var a in referencedAsseblies)
+            foreach(var a in referencedAssemblies)
             {
                 references.Add(MetadataReference.CreateFromFile(a.Location));
             }

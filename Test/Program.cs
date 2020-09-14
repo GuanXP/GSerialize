@@ -271,14 +271,14 @@ namespace Test
 
             Console.WriteLine($"{DateTime.Now} start generating code for an assembly");
             //This step is not neccessary because GSerialize will do it when the generated code required at first time
-            Serializer.CacheSerialiablesInAssembly(typeof(NestedUnit).Assembly);
+            Serializer.CacheSerializableInAssembly(typeof(NestedUnit).Assembly);
             Console.WriteLine($"{DateTime.Now} end generating code for an assembly");
 
             OptionalFieldUnit.UnitTest();
             CollectionUnit.UnitTest();
             PerformanceTest();
 
-            Console.WriteLine($"{DateTime.Now} Unit test successed");
+            Console.WriteLine($"{DateTime.Now} Unit test pass");
         }
 
         private static void PerformanceTest()

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace GSerialize
 {
@@ -129,20 +128,20 @@ namespace GSerialize
             var types = new List<Type>();
             foreach (var a in assemblies)
             {
-                types.AddRange(SerializablesInAssembly(a));
+                types.AddRange(SerializableInAssembly(a));
             }
             return types;
         }
 
-        static bool IsSerialiableType(Type type)
+        static bool IsSerializableType(Type type)
         {
             return type.IsDefined(typeof(GSerializableAttribute), false) && type.IsPublic;
         }
 
-        private static List<Type> SerializablesInAssembly(Assembly a)
+        private static List<Type> SerializableInAssembly(Assembly a)
         {
-            var serialzables = from t in a.DefinedTypes where IsSerialiableType(t) select t;
-            return new List<Type>(serialzables);
+            var serialzableTypes = from t in a.DefinedTypes where IsSerializableType(t) select t;
+            return new List<Type>(serialzableTypes);
         }
 
         private static void GetDepencyAssemblies(Assembly assembly, HashSet<Assembly> assemblies)
@@ -191,7 +190,7 @@ namespace GSerialize
         /// <summary>
         /// Serialize an object into a stream
         /// </summary>
-        /// <typeparam name="T">ther type of object that will be serialized</typeparam>
+        /// <typeparam name="T">the type of object that will be serialized</typeparam>
         /// <param name="value">the object that will be serialized</param>        
         public void Serialize<T>(T value)
         {
@@ -368,21 +367,21 @@ namespace GSerialize
         public static void CacheSerializable(Type serializableType)
         {
             if (TypeMethodsMap.ContainsKey(serializableType)) return;
-            if (!IsSerialiableType(serializableType))
+            if (!IsSerializableType(serializableType))
             {
                 throw new NotSupportedException($"{serializableType.Name} must be a primitive type or class with GSerializable attribute.");
             }
 
-            CacheSerialiablesInAssembly(serializableType.Assembly);
+            CacheSerializableInAssembly(serializableType.Assembly);
         }
 
         /// <summary>
         /// Cache all serializable classes in an assembly.
         /// </summary>
         /// <param name="assembly">The assembly name</param>
-        public static void CacheSerialiablesInAssembly(Assembly assembly)
+        public static void CacheSerializableInAssembly(Assembly assembly)
         {
-            var generatedAssemblyName = $"gserializ.gen{assembly.GetHashCode()}.dll";
+            var generatedAssemblyName = $"gserialize.gen{assembly.GetHashCode()}.dll";
             AddAssembly(assembly, generatedAssemblyName);
         }
     }

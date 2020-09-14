@@ -24,7 +24,7 @@ GSerialize is a C# binary serializer based on code generating.
 
 #### Sample to serialize primitive types
 ```C#
-    var stream = new MemoryStream();
+    using var stream = new MemoryStream();
     var serializer = new Serializer(stream);
 
     UInt16 un16_1 = 123;
