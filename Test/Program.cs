@@ -100,6 +100,13 @@ namespace Test
             var dt2 = serializer.Deserialize<DateTime>();
             Debug.Assert(dt1 == dt2);
 
+            TimeSpan span1 = new TimeSpan(hours: 1, minutes: 5, seconds: 12);
+            mem.Seek(0, SeekOrigin.Begin);
+            serializer.Serialize(span1);
+            mem.Seek(0, SeekOrigin.Begin);
+            var span2 = serializer.Deserialize<TimeSpan>();
+            Debug.Assert(span2 == span1);
+
             Guid guid_1 = Guid.NewGuid();
             mem.Seek(0, SeekOrigin.Begin);
             serializer.Serialize(guid_1);

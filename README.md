@@ -1,10 +1,10 @@
 # About GSerialize
 
-GSerialize is a C# binary serializer based on code generating.
+GSerialize is a very fast C# binary serializer based on code generating.
 
 * Support most of primitive types
 * Support customized serializable class
-* Support Array, List, Dictionary
+* Support Array(1 dimension), List<T>, Dictionary<K,V>
 * High performance (10 times faster than BinaryFormatter）
 * Target to .NET Standard 2.0
 
@@ -20,6 +20,7 @@ GSerialize is a C# binary serializer based on code generating.
 * Float
 * Double
 * DateTime
+* TimeSpan
 * Guid
 
 #### Sample to serialize primitive types
@@ -68,7 +69,8 @@ GSerialize is a C# binary serializer based on code generating.
 #### Define a customized serializable class
 The field/property can be one of following
 * primitive supported types
-* List<T> 
+* Array
+* List<T>
 * Dictionary<K,V>
 * Enum
 * Nullable

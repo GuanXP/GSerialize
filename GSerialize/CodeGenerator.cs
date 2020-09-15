@@ -111,6 +111,7 @@ namespace GSerialize
             new PrimitiveStatementGenerator(typeof(float), "Float"),
             new PrimitiveStatementGenerator(typeof(decimal), "Decimal"),
             new PrimitiveStatementGenerator(typeof(DateTime), "DateTime"),
+            new PrimitiveStatementGenerator(typeof(TimeSpan), "TimeSpan"),
             new PrimitiveStatementGenerator(typeof(Guid), "Guid"),
             new SerializableStatementGenerator(),
             new ArrayStatementGenerator(),
@@ -341,6 +342,11 @@ namespace GSerialize
         {
             return type.FullName.Replace('+', '.');
         }
+
+        internal static bool IsGSerializable(this Type type)
+        {
+            return type.IsDefined(typeof(GSerializableAttribute), false);
+        }
     }
 
     class PropertyFieldInfo
@@ -459,7 +465,7 @@ namespace GSerialize
     {
         public bool Matches(PropertyFieldInfo p)
         {
-            return p.MemberType.IsArray && p.MemberType.HasElementType;
+            return p.MemberType.IsArray && p.MemberType.GetArrayRank() == 1 && p.MemberType.HasElementType;
         }
 
         public string ReadingStatement(PropertyFieldInfo p)

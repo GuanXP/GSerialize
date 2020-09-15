@@ -303,6 +303,26 @@ namespace GSerialize
             return new DateTime(ticks: await ReadInt64Async());
         }
 
+        public void WriteTimeSpan(TimeSpan value)
+        {
+            WriteInt64(value.Ticks);
+        }
+
+        public Task WriteTimeSpanAsync(TimeSpan value)
+        {
+            return WriteInt64Async(value.Ticks);
+        }
+
+        public TimeSpan ReadTimeSpan()
+        {
+            return new TimeSpan(ticks: ReadInt64());
+        }
+
+        public async Task<TimeSpan> ReadTimeSpanAsync()
+        {
+            return new TimeSpan(ticks: await ReadInt64Async());
+        }
+
         public void WriteChar(Char value)
         {
             ByteConverter.GetBytes((UInt16)value, _16BytesBuffer);

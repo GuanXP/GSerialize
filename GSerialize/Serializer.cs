@@ -102,6 +102,14 @@ namespace GSerialize
                 WriteAsync = typeof(Packer).GetMethod("WriteDateTimeAsync"),
             };
 
+            PrimitiveTypeMethodsMap[typeof(TimeSpan)] = new Methods
+            {
+                Read = typeof(Packer).GetMethod("ReadTimeSpan"),
+                Write = typeof(Packer).GetMethod("WriteTimeSpan"),
+                ReadAsync = typeof(Packer).GetMethod("ReadTimeSpanAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteTimeSpanAsync"),
+            };
+
             PrimitiveTypeMethodsMap[typeof(Guid)] = new Methods
             {
                 Read = typeof(Packer).GetMethod("ReadGuid"),
@@ -164,14 +172,11 @@ namespace GSerialize
             return types;
         }
 
-        static bool IsSerializableType(Type type)
-        {
-            return type.IsDefined(typeof(GSerializableAttribute), false) && type.IsPublic;
-        }
-
         private static List<Type> SerializableInAssembly(Assembly a)
         {
-            var serialzableTypes = from t in a.DefinedTypes where IsSerializableType(t) select t;
+            var serialzableTypes = from t in a.DefinedTypes 
+                where t.IsGSerializable() && !t.IsAbstract && t.IsPublic
+                select t;
             return new List<Type>(serialzableTypes);
         }
 
@@ -570,9 +575,17 @@ namespace GSerialize
         public static void CacheSerializable(Type serializableType)
         {
             if (TypeMethodsMap.ContainsKey(serializableType)) return;
-            if (!IsSerializableType(serializableType))
+            if (!serializableType.IsGSerializable())
             {
                 throw new NotSupportedException($"{serializableType.Name} must be a primitive type or class with GSerializable attribute.");
+            }
+            if (serializableType.ContainsGenericParameters)
+            {
+                throw new NotSupportedException($"{serializableType.FullName} must NOT be a generic type");
+            }
+            if (serializableType.IsAbstract || !serializableType.IsPublic)
+            {
+                throw new NotSupportedException($"{serializableType.FullName} must be a non-abstract and public type");
             }
 
             CacheSerializableInAssembly(serializableType.Assembly);
