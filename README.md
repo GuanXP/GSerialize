@@ -109,7 +109,7 @@ catch(Exception)
 {
     excepted = true;
 }
-Debug.Assert(excepted); //required field/property can NOT be null
+Debug.Assert(excepted); //required field/property must NOT be null
 
 item1.RequiredField = "hello";
 item1.FullAccessibleProperty = "property";
@@ -138,7 +138,7 @@ Debug.Assert(item2.ReadOnlyProperty == null);
 ```
 
 ## Behavior
-When method serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they doesn't exist in memory.
+When method serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they don't exist in memory.
 
 All other customized serializable types in the same assembly will get their generated serialization codes at same time.
 
