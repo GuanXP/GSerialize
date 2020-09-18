@@ -104,6 +104,8 @@ namespace GSerialize
             new PrimitiveStatementGenerator(typeof(Int32), "Int32"),
             new PrimitiveStatementGenerator(typeof(UInt64), "UInt64"),
             new PrimitiveStatementGenerator(typeof(Int64), "Int64"),
+            new PrimitiveStatementGenerator(typeof(Byte), "Byte"),
+            new PrimitiveStatementGenerator(typeof(SByte), "SByte"),
             new PrimitiveStatementGenerator(typeof(Boolean), "Bool"),
             new PrimitiveStatementGenerator(typeof(Char), "Char"),
             new PrimitiveStatementGenerator(typeof(string), "String"),

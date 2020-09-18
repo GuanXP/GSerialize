@@ -59,6 +59,54 @@ namespace GSerialize
             return (await ReadNBytesAsync(_16BytesBuffer, 1))[0] == 1;
         }
 
+        public void WriteByte(byte value)
+        {
+            _16BytesBuffer[0] = value;
+            _stream.Write(_16BytesBuffer, 0, 1);
+        }
+
+        public Task WriteByteAsync(byte value)
+        {
+            _16BytesBuffer[0] = value;
+            return _stream.WriteAsync(_16BytesBuffer, 0, 1);
+        }
+
+        public byte ReadByte()
+        {
+            ReadNBytes(_16BytesBuffer, 1);
+            return _16BytesBuffer[0];
+        }
+
+        public async Task<Byte> ReadByteAsync()
+        {
+            await ReadNBytesAsync(_16BytesBuffer, 1);
+            return _16BytesBuffer[0];
+        }
+
+        public void WriteSByte(SByte value)
+        {
+            _16BytesBuffer[0] = (byte)value;
+            _stream.Write(_16BytesBuffer, 0, 1);
+        }
+
+        public Task WriteSByteAsync(SByte value)
+        {
+            _16BytesBuffer[0] = (byte)value;
+            return _stream.WriteAsync(_16BytesBuffer, 0, 1);
+        }
+
+        public SByte ReadSByte()
+        {
+            ReadNBytes(_16BytesBuffer, 1);
+            return (SByte)_16BytesBuffer[0];
+        }
+
+        public async Task<SByte> ReadSByteAsync()
+        {
+            await ReadNBytesAsync(_16BytesBuffer, 1);
+            return (SByte)_16BytesBuffer[0];
+        }
+
         public void WriteString(String value)
         {
             var len = _utf8.GetByteCount(value);

@@ -20,6 +20,19 @@ namespace GSerialize
         private static Dictionary<Type, Methods> TypeMethodsMap = new Dictionary<Type, Methods>();
         private static Dictionary<Type, Methods> PrimitiveTypeMethodsMap = new Dictionary<Type, Methods>();
 
+        private static bool s_DetectingReference = false;
+        public bool DetectingReference
+        {
+            get => s_DetectingReference;
+            set
+            {
+                if (value != s_DetectingReference)
+                {
+                    s_DetectingReference = value;
+                    PrimitiveTypeMethodsMap = new Dictionary<Type, Methods>(); //Re-generate code later
+                }
+            }
+        }
         static Serializer()
         {
             PrimitiveTypeMethodsMap[typeof(Int32)] = new Methods
@@ -68,6 +81,22 @@ namespace GSerialize
                 Write = typeof(Packer).GetMethod("WriteUInt16"),
                 ReadAsync = typeof(Packer).GetMethod("ReadUInt16Async"),
                 WriteAsync = typeof(Packer).GetMethod("WriteUInt16Async"),
+            };
+
+            PrimitiveTypeMethodsMap[typeof(Byte)] = new Methods
+            {
+                Read = typeof(Packer).GetMethod("ReadByte"),
+                Write = typeof(Packer).GetMethod("WriteByte"),
+                ReadAsync = typeof(Packer).GetMethod("ReadByteAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteByteAsync"),
+            };
+
+            PrimitiveTypeMethodsMap[typeof(SByte)] = new Methods
+            {
+                Read = typeof(Packer).GetMethod("ReadSByte"),
+                Write = typeof(Packer).GetMethod("WriteSByte"),
+                ReadAsync = typeof(Packer).GetMethod("ReadSByteAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteSByteAsync"),
             };
 
             PrimitiveTypeMethodsMap[typeof(string)] = new Methods
@@ -259,7 +288,7 @@ namespace GSerialize
             }
         }
 
-        internal void SerializeEnumerable<T>(IEnumerable<T> value)
+        internal void WriteEnumerable<T>(IEnumerable<T> value)
         {
             MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
             Packer.WriteInt32(value.Count());
@@ -279,7 +308,7 @@ namespace GSerialize
             }
         }
 
-        internal async Task SerializeEnumerableAsync<T>(IEnumerable<T> value)
+        internal async Task WriteEnumerableAsync<T>(IEnumerable<T> value)
         {
             MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
             await Packer.WriteInt32Async(value.Count());
@@ -299,7 +328,7 @@ namespace GSerialize
             }
         }
 
-        internal void SerializeDict<K,V>(Dictionary<K,V> value)
+        internal void WriteDict<K,V>(Dictionary<K,V> value)
         {
             MethodsForType(typeof(K), out Methods packerMethodsK, out Methods methodsK);
             MethodsForType(typeof(V), out Methods packerMethodsV, out Methods methodsV);
@@ -339,7 +368,7 @@ namespace GSerialize
             }
         }
 
-        internal async Task SerializeDictAsync<K,V>(Dictionary<K,V> value)
+        internal async Task WriteDictAsync<K,V>(Dictionary<K,V> value)
         {
             MethodsForType(typeof(K), out Methods packerMethodsK, out Methods methodsK);
             MethodsForType(typeof(V), out Methods packerMethodsV, out Methods methodsV);
@@ -379,7 +408,7 @@ namespace GSerialize
             }
         }
 
-        internal Dictionary<K, V> DeserializeDict<K, V>()
+        internal Dictionary<K, V> ReadDict<K, V>()
         {
             MethodsForType(typeof(K), out Methods packerMethodsK, out Methods methodsK);
             MethodsForType(typeof(V), out Methods packerMethodsV, out Methods methodsV);
@@ -428,7 +457,7 @@ namespace GSerialize
             return dict;
         }
 
-        internal async Task<Dictionary<K, V>> DeserializeDictAsync<K, V>()
+        internal async Task<Dictionary<K, V>> ReadDictAsync<K, V>()
         {
             MethodsForType(typeof(K), out Methods packerMethodsK, out Methods methodsK);
             MethodsForType(typeof(V), out Methods packerMethodsV, out Methods methodsV);
@@ -516,7 +545,7 @@ namespace GSerialize
             }
         }
 
-        internal List<T> DeserializeList<T>()
+        internal List<T> ReadList<T>()
         {
             MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
             var type = typeof(T);
@@ -541,7 +570,7 @@ namespace GSerialize
             return list;
         }
 
-        internal async Task<List<T>> DeserializeListAsync<T>()
+        internal async Task<List<T>> ReadListAsync<T>()
         {
             MethodsForType(typeof(T), out Methods packerMethods, out Methods methods);
             var type = typeof(T);

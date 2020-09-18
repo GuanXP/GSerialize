@@ -8,62 +8,62 @@ namespace GSerialize
     {
         public static void WriteList<T>(List<T> list, Serializer serializer)
         {
-            serializer.SerializeEnumerable(list);
+            serializer.WriteEnumerable(list);
         }
 
         public static Task WriteListAsync<T>(List<T> list, Serializer serializer)
         {
-            return serializer.SerializeEnumerableAsync(list);
+            return serializer.WriteEnumerableAsync(list);
         }
 
         public static List<T> ReadList<T>(Serializer serializer)
         {
-            return serializer.DeserializeList<T>();
+            return serializer.ReadList<T>();
         }
 
         public static Task<List<T>> ReadListAsync<T>(Serializer serializer)
         {
-            return serializer.DeserializeListAsync<T>();
+            return serializer.ReadListAsync<T>();
         }
 
         public static void WriteArray<T>(T[] array, Serializer serializer)
         {
-            serializer.SerializeEnumerable(array);
+            serializer.WriteEnumerable(array);
         }
 
         public static Task WriteArrayAsync<T>(T[] array, Serializer serializer)
         {
-            return serializer.SerializeEnumerableAsync(array);
+            return serializer.WriteEnumerableAsync(array);
         }
 
         public static T[] ReadArray<T>(Serializer serializer)
         {
-            return serializer.DeserializeList<T>().ToArray();
+            return serializer.ReadList<T>().ToArray();
         }
 
         public async static Task<T[]> ReadArrayAsync<T>(Serializer serializer)
         {
-            return (await serializer.DeserializeListAsync<T>()).ToArray();
+            return (await serializer.ReadListAsync<T>()).ToArray();
         }
 
         public static void WriteDict<K, V>(Dictionary<K, V> dict, Serializer serializer)
         {
-            serializer.SerializeDict(dict);
+            serializer.WriteDict(dict);
         }
 
         public static Task WriteDictAsync<K, V>(Dictionary<K, V> dict, Serializer serializer)
         {
-            return serializer.SerializeDictAsync(dict);
+            return serializer.WriteDictAsync(dict);
         }
 
         public static Dictionary<K, V> ReadDict<K, V>(Serializer serializer)
         {
-            return serializer.DeserializeDict<K, V>();
+            return serializer.ReadDict<K, V>();
         }
 
         public static Task<Dictionary<K, V>> ReadDictAsync<K, V>(Serializer serializer)
         {
-            return serializer.DeserializeDictAsync<K, V>();
+            return serializer.ReadDictAsync<K, V>();
         }
 
         public static void WriteNullable<T>(T? value, Serializer serializer) where T : struct
