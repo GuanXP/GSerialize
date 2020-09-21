@@ -311,15 +311,21 @@ namespace GSerialize
                     IsOptional = f.IsOptional()
                 });
             }
+            result.Sort((x,y)=>string.Compare(x.MemberName, y.MemberName));
             return result;
         }        
     }
 
     static class MemberInfoExtension
     {
-        internal static bool IsOptional(this MemberInfo info)
+        internal static bool IsOptional(this PropertyInfo info)
         {
-            return info.IsDefined(typeof(OptionalAttribute), inherit: false);
+            return !info.PropertyType.IsValueType && info.IsDefined(typeof(OptionalAttribute), inherit: false);
+        }
+
+        internal static bool IsOptional(this FieldInfo info)
+        {
+            return !info.FieldType.IsValueType && info.IsDefined(typeof(OptionalAttribute), inherit: false);
         }
 
         internal static bool IsIgnored(this MemberInfo info)
@@ -342,6 +348,22 @@ namespace GSerialize
 
         internal static string VisibleClassName(this Type type)
         {
+            if (type.Name == "List`1")
+            {
+                var elementType = type.GetGenericArguments()[0];
+                return $"List<{elementType.VisibleClassName()}>";
+            }
+            if (type.Name == "Dictionary`2")
+            {
+                var kType = type.GetGenericArguments()[0];
+                var vType = type.GetGenericArguments()[1];
+                return $"Dictionary<{kType.VisibleClassName()}, {vType.VisibleClassName()}>";
+            }
+            if (type.IsArray)
+            {
+                var elementType = type.GetElementType();
+                return $"{elementType.VisibleClassName()}[]";
+            }
             return type.FullName.Replace('+', '.');
         }
 

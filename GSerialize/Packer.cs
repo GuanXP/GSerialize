@@ -125,7 +125,6 @@ namespace GSerialize
             await _stream.WriteAsync(bytes, 0, len);
         }
 
-
         public String ReadString()
         {
             var len = ReadInt32();

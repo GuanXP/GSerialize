@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,11 +7,9 @@ using System.Threading.Tasks;
 
 namespace GSerialize
 {
-    public sealed class Serializer: ISerializer
+    public sealed class Serializer2: ISerializer
     {
-
         private static Dictionary<Type, SerialMethods> TypeMethodsMap = new Dictionary<Type, SerialMethods>();
-
         private static void AddAssembly(Assembly assembly, string generatedAssemblyName)
         {
             var referencedAssemblies = DependencyWalker.GetReferencedAssemblies(assembly);
@@ -21,11 +19,13 @@ namespace GSerialize
             if (firstSerialabeType == null || TypeMethodsMap.ContainsKey(firstSerialabeType)) return;
 
             var mapCopy = new Dictionary<Type, SerialMethods>(TypeMethodsMap);
-            var compiledAssembly = CodeGenerator.CompileSerialable(
+            var compiledAssembly = CodeGenerator2.CompileSerialable(
                 serializingTypes, referencedAssemblies, generatedAssemblyName);
             foreach (var t in serializingTypes)
             {
-                var classType = compiledAssembly.GetType(t.GeneratedFullClassName());
+                var classType = compiledAssembly.GetType(t.GeneratedFullClassName2());
+                //for debugging
+                //var classType = Assembly.GetType(t.GeneratedFullClassName2());
                 var methods = new SerialMethods
                 {
                     Write = classType.GetMethod("Write"),
@@ -39,22 +39,20 @@ namespace GSerialize
         }
 
         public readonly Packer Packer;
-
-        private readonly Object[] _paramsReadingPacker = Array.Empty<Object>();
-        private readonly Object[] _paramsReading;
-        private readonly Object[] _paramsWrittingPacker;
-        private readonly Object[] _paramsWritting;
-
+        private readonly object[] _paramsReadingPacker = Array.Empty<Object>();
+        private readonly object[] _paramsReading;
+        private readonly object[] _paramsWrittingPacker;
+        private readonly object[] _paramsWritting;
         /// <summary>
         /// Construct a new Serializer instance
         /// </summary>
         /// <param name="stream">the stream that will take the serialized data</param>
-        public Serializer(Stream stream)
+        public Serializer2(Stream stream)
         {
             Packer = new Packer(stream);
-            _paramsReading = new object[] { this };
+            _paramsReading = new object[] {this, null};
             _paramsWrittingPacker = new object[1];
-            _paramsWritting = new object[] { null, this};
+            _paramsWritting = new object[] {null, this, null};
         }
 
         private static void MethodsForType(Type type, out SerialMethods packerMethods, out SerialMethods methods)
@@ -89,7 +87,9 @@ namespace GSerialize
             }
             else
             {
+                var cache = new Dictionary<Object, int>();
                 _paramsWritting[0] = value;
+                _paramsWritting[2] = cache;
                 methods.Write.Invoke(null, _paramsWritting);
             }
         }
@@ -109,13 +109,29 @@ namespace GSerialize
             }
             else
             {
+                var cache = new Dictionary<Object, int>();
                 _paramsWritting[0] = value;
+                _paramsWritting[2] = cache;
                 return (Task)methods.WriteAsync.Invoke(null, _paramsWritting);
             }
         }
 
-        internal void WriteEnumerable<T>(IEnumerable<T> value)
+        internal void WriteEnumerable<T>(IEnumerable<T> value, Dictionary<Object, int> cache)
         {
+            if (value == null)
+            {
+                Packer.WriteInt32(0);
+                return;
+            }
+            if (cache.TryGetValue(value, out int id))
+            {
+                Packer.WriteInt32(id);
+                return;
+            }
+            id = cache.Count + 1;
+            cache[value] = id;
+            Packer.WriteInt32(id);
+
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
             Packer.WriteInt32(value.Count());
             if (packerMethods != null)
@@ -128,6 +144,7 @@ namespace GSerialize
             }
             else
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWritting[0] = item;
@@ -136,8 +153,23 @@ namespace GSerialize
             }
         }
 
-        internal async Task WriteEnumerableAsync<T>(IEnumerable<T> value)
+        internal async Task WriteEnumerableAsync<T>(IEnumerable<T> value, Dictionary<Object, int> cache)
         {
+            if (value == null)
+            {
+                await Packer.WriteInt32Async(0);
+                return;
+            }
+            if (cache.TryGetValue(value, out int id))
+            {
+                await Packer.WriteInt32Async(id);
+                return;
+            }
+            
+            id = cache.Count + 1;
+            cache[value] = id;
+            await Packer.WriteInt32Async(id);
+
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
             await Packer.WriteInt32Async(value.Count());
             if (packerMethods != null)
@@ -150,6 +182,7 @@ namespace GSerialize
             }
             else
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWritting[0] = item;
@@ -158,8 +191,87 @@ namespace GSerialize
             }
         }
 
-        internal void WriteDict<K,V>(Dictionary<K,V> value)
+        internal void WriteString(string value, Dictionary<Object, int> cache)
         {
+            if (value == null)
+            {
+                Packer.WriteInt32(0);
+                return;
+            }
+            if (cache.TryGetValue(value, out int id))
+            {
+                Packer.WriteInt32(id);
+                return;
+            }
+            id = cache.Count + 1;
+            cache[value] = id;
+            Packer.WriteInt32(id);
+            Packer.WriteString(value);
+        }
+
+        internal async Task WriteStringAsync(string value, Dictionary<Object, int> cache)
+        {
+            if (value == null)
+            {
+                await Packer.WriteInt32Async(0);
+                return;
+            }
+            if (cache.TryGetValue(value, out int id))
+            {
+                await Packer.WriteInt32Async(id);
+                return;
+            }
+            
+            id = cache.Count + 1;
+            cache[value] = id;
+            await Packer.WriteInt32Async(id);
+            await Packer.WriteStringAsync(value);
+        }
+
+        internal string ReadString(Dictionary<int, Object> cache)
+        {
+            var id = Packer.ReadInt32();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (string)value;
+            }
+
+            var str = Packer.ReadString();
+            cache[id] = str;
+            return str;
+        }
+
+        internal async Task<string> ReadStringAsync(Dictionary<int, Object> cache)
+        {
+            var id = await Packer.ReadInt32Async();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (string)value;
+            }
+
+            var str = await Packer.ReadStringAsync();
+            cache[id] = str;
+            return str;
+        }
+
+        internal void WriteDict<K,V>(Dictionary<K,V> value, Dictionary<Object, int> cache)
+        {
+            if (value == null)
+            {
+                Packer.WriteInt32(0);
+                return;
+            }
+            if (cache.TryGetValue(value, out int id))
+            {
+                Packer.WriteInt32(id);
+                return;
+            }
+            id = cache.Count + 1;
+            cache[value] = id;
+            Packer.WriteInt32(id);
+
             MethodsForType(typeof(K), out SerialMethods packerMethodsK, out SerialMethods methodsK);
             MethodsForType(typeof(V), out SerialMethods packerMethodsV, out SerialMethods methodsV);
 
@@ -176,16 +288,18 @@ namespace GSerialize
             }
             else if (packerMethodsK != null && methodsV != null)
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWrittingPacker[0] = item.Key;
-                    packerMethodsK.Write.Invoke(Packer, _paramsWrittingPacker);
+                    packerMethodsK.Write.Invoke(Packer, new object[] { item.Key });
                     _paramsWritting[0] = item.Value;
                     methodsV.Write.Invoke(null, _paramsWritting);
                 }
             }
             else if (methodsK != null && methodsV != null)
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWritting[0] = item.Key;
@@ -196,23 +310,39 @@ namespace GSerialize
             }
             else
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWritting[0] = item.Key;
                     methodsK.Write.Invoke(null, _paramsWritting);
-                    _paramsWrittingPacker[0] = item.Value;
-                    packerMethodsV.Write.Invoke(Packer, _paramsWrittingPacker);
+                    _paramsWritting[0] = item.Value;
+                    packerMethodsV.Write.Invoke(Packer, _paramsWritting);
                 }
             }
         }
 
-        internal async Task WriteDictAsync<K,V>(Dictionary<K,V> value)
+        internal async Task WriteDictAsync<K,V>(Dictionary<K,V> value, Dictionary<Object, int> cache)
         {
+            if (value == null)
+            {
+                await Packer.WriteInt32Async(0);
+                return;
+            }
+            if (cache.TryGetValue(value, out int id))
+            {
+                await Packer.WriteInt32Async(id);
+                return;
+            }
+            
+            id = cache.Count + 1;
+            cache[value] = id;
+            await Packer.WriteInt32Async(id);
+
             MethodsForType(typeof(K), out SerialMethods packerMethodsK, out SerialMethods methodsK);
             MethodsForType(typeof(V), out SerialMethods packerMethodsV, out SerialMethods methodsV);
 
             await Packer.WriteInt32Async(value.Count());
-            if (packerMethodsK != null && packerMethodsV != null)
+                        if (packerMethodsK != null && packerMethodsV != null)
             {
                 foreach (var item in value)
                 {
@@ -224,16 +354,18 @@ namespace GSerialize
             }
             else if (packerMethodsK != null && methodsV != null)
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWrittingPacker[0] = item.Key;
-                    await (Task)packerMethodsK.WriteAsync.Invoke(Packer, _paramsWrittingPacker);
+                    await (Task)packerMethodsK.WriteAsync.Invoke(Packer, new object[] { item.Key });
                     _paramsWritting[0] = item.Value;
                     await (Task)methodsV.WriteAsync.Invoke(null, _paramsWritting);
                 }
             }
             else if (methodsK != null && methodsV != null)
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWritting[0] = item.Key;
@@ -244,18 +376,26 @@ namespace GSerialize
             }
             else
             {
+                _paramsWritting[2] = cache;
                 foreach (var item in value)
                 {
                     _paramsWritting[0] = item.Key;
                     await (Task)methodsK.WriteAsync.Invoke(null, _paramsWritting);
-                    _paramsWrittingPacker[0] = item.Value;
-                    await (Task)packerMethodsV.WriteAsync.Invoke(Packer, _paramsWrittingPacker);
+                    _paramsWritting[0] = item.Value;
+                    await (Task)packerMethodsV.WriteAsync.Invoke(Packer, _paramsWritting);
                 }
             }
         }
 
-        internal Dictionary<K, V> ReadDict<K, V>()
+        internal Dictionary<K, V> ReadDict<K, V>(Dictionary<int, Object> cache)
         {
+            var id = Packer.ReadInt32();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (Dictionary<K, V>)value;
+            }
+
             MethodsForType(typeof(K), out SerialMethods packerMethodsK, out SerialMethods methodsK);
             MethodsForType(typeof(V), out SerialMethods packerMethodsV, out SerialMethods methodsV);
 
@@ -272,6 +412,7 @@ namespace GSerialize
             }
             else if (packerMethodsK != null && methodsV != null)
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = (K)packerMethodsK.Read.Invoke(Packer, _paramsReadingPacker);
@@ -281,6 +422,7 @@ namespace GSerialize
             }
             else if (methodsK != null && methodsV != null)
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = (K)methodsK.Read.Invoke(null, _paramsReading);
@@ -290,6 +432,7 @@ namespace GSerialize
             }
             else
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = (K)methodsK.Read.Invoke(null, _paramsReading);
@@ -300,8 +443,15 @@ namespace GSerialize
             return dict;
         }
 
-        internal async Task<Dictionary<K, V>> ReadDictAsync<K, V>()
+        internal async Task<Dictionary<K, V>> ReadDictAsync<K, V>(Dictionary<int, Object> cache)
         {
+            var id = await Packer.ReadInt32Async();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (Dictionary<K, V>)value;
+            }
+
             MethodsForType(typeof(K), out SerialMethods packerMethodsK, out SerialMethods methodsK);
             MethodsForType(typeof(V), out SerialMethods packerMethodsV, out SerialMethods methodsV);
 
@@ -318,6 +468,7 @@ namespace GSerialize
             }
             else if (packerMethodsK != null && methodsV != null)
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = await (Task<K>)packerMethodsK.ReadAsync.Invoke(Packer, _paramsReadingPacker);
@@ -327,6 +478,7 @@ namespace GSerialize
             }
             else if (methodsK != null && methodsV != null)
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = await (Task<K>)methodsK.ReadAsync.Invoke(null, _paramsReading);
@@ -336,6 +488,7 @@ namespace GSerialize
             }
             else
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = await (Task<K>)methodsK.ReadAsync.Invoke(null, _paramsReading);
@@ -362,7 +515,8 @@ namespace GSerialize
             }
             else
             {
-                return (T)methods.Read.Invoke(null, _paramsReading);
+                var cache = new Dictionary<int, Object>();
+                return (T)methods.Read.Invoke(null, new object[]{this, cache});
             }
         }
 
@@ -381,16 +535,26 @@ namespace GSerialize
             }
             else
             {
+                var cache = new Dictionary<int, Object>();
+                _paramsReading[1] = cache;
                 return (Task<T>)methods.ReadAsync.Invoke(null, _paramsReading);
             }
         }
 
-        internal List<T> ReadList<T>()
+        internal List<T> ReadList<T>(Dictionary<int, Object> cache)
         {
+            var id = Packer.ReadInt32();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (List<T>)value;
+            }
+
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
             var type = typeof(T);
             var count = Packer.ReadInt32();
             var list = new List<T>(capacity: count);
+            cache[id] = list;
 
             if (packerMethods != null)
             {
@@ -401,6 +565,7 @@ namespace GSerialize
             }
             else
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     list.Add((T)methods.Read.Invoke(null, _paramsReading));
@@ -409,12 +574,20 @@ namespace GSerialize
             return list;
         }
 
-        internal async Task<List<T>> ReadListAsync<T>()
+        internal async Task<List<T>> ReadListAsync<T>(Dictionary<int, Object> cache)
         {
+            var id = await Packer.ReadInt32Async();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (List<T>)value;
+            }
+
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
             var type = typeof(T);
             var count = await Packer.ReadInt32Async();
             var list = new List<T>(capacity: count);
+            cache[id] = list;
 
             if (packerMethods != null)
             {
@@ -425,9 +598,76 @@ namespace GSerialize
             }
             else
             {
+                _paramsReading[1] = cache;
                 for (var i = 0; i < count; ++i)
                 {
                     list.Add(await (Task<T>)methods.ReadAsync.Invoke(null, _paramsReading));
+                }
+            }
+            return list;
+        }
+
+        internal T[] ReadArray<T>(Dictionary<int, Object> cache)
+        {
+            var id = Packer.ReadInt32();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (T[])value;
+            }
+
+            MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
+            var type = typeof(T);
+            var count = Packer.ReadInt32();
+            var list = new T[count];
+            cache[id] = list;
+
+            if (packerMethods != null)
+            {
+                for (var i = 0; i < count; ++i)
+                {
+                    list[i] = (T)packerMethods.Read.Invoke(Packer, _paramsReadingPacker);
+                }
+            }
+            else
+            {
+                _paramsReading[1] = cache;
+                for (var i = 0; i < count; ++i)
+                {
+                    list[i] = (T)methods.Read.Invoke(null, _paramsReading);
+                }
+            }
+            return list;
+        }
+
+        internal async Task<T[]> ReadArrayAsync<T>(Dictionary<int, Object> cache)
+        {
+            var id = await Packer.ReadInt32Async();
+            if (id == 0) return null;
+            if (cache.TryGetValue(id, out object value))
+            {
+                return (T[])value;
+            }
+
+            MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
+            var type = typeof(T);
+            var count = await Packer.ReadInt32Async();
+            var list = new T[count];
+            cache[id] = list;
+
+            if (packerMethods != null)
+            {
+                for (var i = 0; i < count; ++i)
+                {
+                    list[i] = await (Task<T>)packerMethods.ReadAsync.Invoke(Packer, _paramsReadingPacker);
+                }
+            }
+            else
+            {
+                _paramsReading[1] = cache;
+                for (var i = 0; i < count; ++i)
+                {
+                    list[i] = await (Task<T>)methods.ReadAsync.Invoke(null, _paramsReading);
                 }
             }
             return list;
@@ -442,6 +682,8 @@ namespace GSerialize
         public static void CacheSerializable(Type serializableType)
         {
             if (TypeMethodsMap.ContainsKey(serializableType)) return;
+            if (serializableType == typeof(Object)) return;
+
             if (!serializableType.IsGSerializable())
             {
                 throw new NotSupportedException($"{serializableType.Name} must be a primitive type or class with GSerializable attribute.");
@@ -464,7 +706,7 @@ namespace GSerialize
         /// <param name="assembly">The assembly name</param>
         public static void PrepareForAssembly(Assembly assembly)
         {
-            var generatedAssemblyName = $"gserialize.gen{assembly.GetHashCode()}.dll";
+            var generatedAssemblyName = $"gserialize2.gen{assembly.GetHashCode()}.dll";
             AddAssembly(assembly, generatedAssemblyName);
         }
     }

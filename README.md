@@ -9,11 +9,19 @@ GSerialize is a very fast C# binary serializer based on code generating.
 * Target to .NET Standard 2.0
 
 ## Usage
+```C#
+var serializer = Serializer(stream); //Construct a serializer that will store data into a stream
+//To serialize an object
+serializer.Serialize<YourClass>(yourClassInstance);
+//To deserialize an object
+var yourClassInstance = serializer.Deserialize<YourClass>();
+```
 
 ### Serialize primitive types listing bellow
 * Int16/UInt16
 * Int32/UInt32
 * Int64/UInt64
+* Byte/SByte
 * String
 * Char
 * Decimal
@@ -142,12 +150,13 @@ When method serializer.Serialize<T> called，GSerialize will generate serializat
 
 All other customized serializable types in the same assembly will get their generated serialization codes at same time.
 
-The generating process will take a few seconds, the client code can call Serializer.CacheSerialiablesInAssembly to generate all serialization codes before any serializer.Serialize<T> calls.
+The generating process will take a few seconds, the client code can call Serializer.PrepareForAssembly to generate all serialization codes before any serializer.Serialize<T> calls.
 
 
 ## Limitations
-GSerialize doesn't check references among the class fields, so the customized class must avoid property/field reference cycle otherwise it might get a dead loop while serializing.
+For best performance, GSerialize.Serializer doesn't check references among the class members, every member will save a copy of its data even. The customized class must avoid reference cycle because that will cause a dead loop while serializing. 
+If you need references checked, please use GSerialize.Serializer2 that will lost a bit of performance but can decrease data size if there are many member references in a serializable object.
 
-GSerialize is not thread safe, so client shall avoid calling identical instance of Serializer from variety threads.
+GSerialize is not thread safe, so client shall avoid accessing identical instance of Serializer/Serializer2 from variety threads.
 
 Customized serializable class must provide a default constructor.
