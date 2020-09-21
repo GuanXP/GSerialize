@@ -154,9 +154,10 @@ The generating process will take a few seconds, the client code can call Seriali
 
 
 ## Limitations
-For best performance, GSerialize.Serializer doesn't check references among the class members, every member will save a copy of its data even. The customized class must avoid reference cycle because that will cause a dead loop while serializing. 
-If you need references checked, please use GSerialize.Serializer2 that will lost a bit of performance but can decrease data size if there are many member references in a serializable object.
+- For best performance, GSerialize.Serializer doesn't check references among the class members, every member will save a copy of its data. The customized class must avoid reference cycle because that will cause a dead loop while serializing. 
 
-GSerialize is not thread safe, so client shall avoid accessing identical instance of Serializer/Serializer2 from variety threads.
+- If you need references checked, please use GSerialize.Serializer2 that will lost a bit of performance but can decrease data size if there are many member references in a serializable object.
 
-Customized serializable class must provide a default constructor.
+- GSerialize is not thread safe, so client shall avoid accessing identical instance of Serializer/Serializer2 from variety threads.
+
+- Customized serializable class must provide a default constructor.
