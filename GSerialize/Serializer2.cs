@@ -409,6 +409,7 @@ namespace GSerialize
 
             var count = Packer.ReadInt32();
             var dict = new Dictionary<K, V>(capacity: count);
+            cache[id] = dict;
             if (packerMethodsK != null && packerMethodsV != null)
             {
                 for (var i = 0; i < count; ++i)
@@ -465,6 +466,8 @@ namespace GSerialize
 
             var count = await Packer.ReadInt32Async();
             var dict = new Dictionary<K, V>(capacity: count);
+            cache[id] = dict;
+
             if (packerMethodsK != null && packerMethodsV != null)
             {
                 for (var i = 0; i < count; ++i)
@@ -513,7 +516,7 @@ namespace GSerialize
         /// </summary>
         /// <typeparam name="T">The object type that will be deserialize</typeparam>
         /// <returns>The deserialized object</returns>
-        /// <exception cref="System.IO.IOException">The input stream closed</exception>
+        /// <exception cref="System.IO.EndOfStreamException">The input stream end reached</exception>
         public T Deserialize<T>()
         {
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
@@ -524,7 +527,8 @@ namespace GSerialize
             else
             {
                 var cache = new Dictionary<int, Object>();
-                return (T)methods.Read.Invoke(null, new object[]{this, cache});
+                _paramsReading[1] = cache;
+                return (T)methods.Read.Invoke(null, _paramsReading);
             }
         }
 
@@ -533,7 +537,7 @@ namespace GSerialize
         /// </summary>
         /// <typeparam name="T">The object type that will be deserialize</typeparam>
         /// <returns>The deserialized object</returns>
-        /// <exception cref="System.IO.IOException">The input stream closed</exception>
+        /// <exception cref="System.IO.EndOfStreamException">The input stream end reached</exception>
         public Task<T> DeserializeAsync<T>()
         {
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
@@ -559,7 +563,6 @@ namespace GSerialize
             }
 
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
-            var type = typeof(T);
             var count = Packer.ReadInt32();
             var list = new List<T>(capacity: count);
             cache[id] = list;
@@ -592,7 +595,6 @@ namespace GSerialize
             }
 
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
-            var type = typeof(T);
             var count = await Packer.ReadInt32Async();
             var list = new List<T>(capacity: count);
             cache[id] = list;
@@ -625,7 +627,6 @@ namespace GSerialize
             }
 
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
-            var type = typeof(T);
             var count = Packer.ReadInt32();
             var list = new T[count];
             cache[id] = list;
@@ -658,7 +659,6 @@ namespace GSerialize
             }
 
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
-            var type = typeof(T);
             var count = await Packer.ReadInt32Async();
             var list = new T[count];
             cache[id] = list;
@@ -687,11 +687,9 @@ namespace GSerialize
         /// </summary>
         /// <param name="serializableType">the type that will be cached</param>
         /// <exception cref="NotSupportedException">The caching type has no GSerializableAttribute defined</exception>
-        public static void CacheSerializable(Type serializableType)
+        private static void CacheSerializable(Type serializableType)
         {
             if (TypeMethodsMap.ContainsKey(serializableType)) return;
-            if (serializableType == typeof(Object)) return;
-
             if (!serializableType.IsGSerializable())
             {
                 throw new NotSupportedException($"{serializableType.Name} must be a primitive type or class with GSerializable attribute.");

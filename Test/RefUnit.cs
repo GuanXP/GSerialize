@@ -21,6 +21,10 @@ namespace Test
         public List<RefUnit> List1 = new List<RefUnit>();
         public RefUnit[] Array1 = new RefUnit[3];
         public RefUnit[] Array2;
+        public Dictionary<int, RefUnit> Dict2;
+        public List<RefUnit> List2;
+        public String Str1 = "hello";
+        public String Str2;
 
         public static void UnitTest()
         {
@@ -33,6 +37,9 @@ namespace Test
             item1.List1.Add(item1);
             item1.Array1[0] = item1;
             item1.Array2 = item1.Array1;
+            item1.Dict2 = item1.Dict1;
+            item1.List2 = item1.List1;
+            item1.Str2 = item1.Str1;
 
             mem.Seek(0, SeekOrigin.Begin);
             serializer.Serialize(item1);
@@ -45,6 +52,9 @@ namespace Test
             Debug.Assert(item2.Array1[1] == null);
             Debug.Assert(item2.Array1[2] == null);
             Debug.Assert(Object.ReferenceEquals(item2.Array1, item2.Array2));
+            Debug.Assert(Object.ReferenceEquals(item2.Dict1, item2.Dict2));
+            Debug.Assert(Object.ReferenceEquals(item2.List1, item2.List2));
+            Debug.Assert(Object.ReferenceEquals(item2.Str1, item2.Str2));
 
             Console.WriteLine($"{DateTime.Now} Serializer2: end reference testing");
         }

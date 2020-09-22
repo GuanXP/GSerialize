@@ -428,7 +428,7 @@ namespace GSerialize
             while (count > 0)
             {
                 var n = _stream.Read(bytes, readBytes, count);
-                if (n == 0) throw new IOException("The input stream closed");
+                if (n == 0) throw new EndOfStreamException();
                 readBytes += n;
                 count -= n;
             }
@@ -441,7 +441,7 @@ namespace GSerialize
             while (count > 0)
             {
                 var n = await _stream.ReadAsync(bytes, readBytes, count);
-                if (n == 0) throw new IOException("The input stream closed");
+                if (n == 0) throw new EndOfStreamException();
                 readBytes += n;
                 count -= n;
             }

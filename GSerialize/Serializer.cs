@@ -360,7 +360,7 @@ namespace GSerialize
         /// </summary>
         /// <typeparam name="T">The object type that will be deserialize</typeparam>
         /// <returns>The deserialized object</returns>
-        /// <exception cref="System.IO.IOException">The input stream closed</exception>
+        /// <exception cref="System.IO.EndOfStreamException">The input stream end reached</exception>
         public T Deserialize<T>()
         {
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
@@ -379,7 +379,7 @@ namespace GSerialize
         /// </summary>
         /// <typeparam name="T">The object type that will be deserialize</typeparam>
         /// <returns>The deserialized object</returns>
-        /// <exception cref="System.IO.IOException">The input stream closed</exception>
+        /// <exception cref="System.IO.EndOfStreamException">The input stream end reached</exception>
         public Task<T> DeserializeAsync<T>()
         {
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
@@ -396,7 +396,6 @@ namespace GSerialize
         internal List<T> ReadList<T>()
         {
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
-            var type = typeof(T);
             var count = Packer.ReadInt32();
             var list = new List<T>(capacity: count);
 
@@ -420,7 +419,6 @@ namespace GSerialize
         internal async Task<List<T>> ReadListAsync<T>()
         {
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
-            var type = typeof(T);
             var count = await Packer.ReadInt32Async();
             var list = new List<T>(capacity: count);
 
@@ -447,7 +445,7 @@ namespace GSerialize
         /// </summary>
         /// <param name="serializableType">the type that will be cached</param>
         /// <exception cref="NotSupportedException">The caching type has no GSerializableAttribute defined</exception>
-        public static void CacheSerializable(Type serializableType)
+        private static void CacheSerializable(Type serializableType)
         {
             if (TypeMethodsMap.ContainsKey(serializableType)) return;
             if (!serializableType.IsGSerializable())
