@@ -44,6 +44,14 @@ namespace Test
         public NestedUnit NestedSerializable = new NestedUnit();
         public Dictionary<string, NestedUnit> DictField = new Dictionary<string, NestedUnit>();
 
+        public Dictionary<String, Int32> Dict1 = new Dictionary<string, int>();
+
+        public Dictionary<String, String> Dict2 = new Dictionary<string, string>();
+
+        public Dictionary<Int32, String> Dict3 = new Dictionary<int, string>();
+
+        public Dictionary<Int32, Int32> Dict4 = new Dictionary<int, int>();
+
         public static void UnitTest<TSerializer>(
             TSerializer serializer,
             MemoryStream mem) where TSerializer: ISerializer
@@ -73,6 +81,7 @@ namespace Test
             Debug.Assert(p2.NestedSerializable.DictField[789] == p1.NestedSerializable.DictField[789]);
 
             p1.NullableField = 56789;
+            p1.ArrayField[0] = "Greatwall";
             p1.DictField.Add("First", new NestedUnit { FloatField = 556 });
             p1.FlagField = FileModeEnum.Read | FileModeEnum.Write;
             mem.Seek(0, SeekOrigin.Begin);
@@ -83,6 +92,19 @@ namespace Test
             Debug.Assert(p2.NullableField.Value == 56789);
             Debug.Assert(p2.DictField["First"].FloatField == 556);
             Debug.Assert(p2.FlagField == p1.FlagField);
+
+            p1.Dict1["hello"] = 123;
+            p1.Dict2["hello"] = "world";
+            p1.Dict3[123] = "hello";
+            p1.Dict4[123] = 456;
+            mem.Seek(0, SeekOrigin.Begin);
+            serializer.Serialize(p1);
+            mem.Seek(0, SeekOrigin.Begin);
+            p2 = serializer.Deserialize<CollectionUnit>();
+            Debug.Assert(p2.Dict1["hello"] == 123);
+            Debug.Assert(p2.Dict2["hello"] == "world");
+            Debug.Assert(p2.Dict3[123] == "hello");
+            Debug.Assert(p2.Dict4[123] == 456);
 
             Console.WriteLine($"{DateTime.Now} {typeof(TSerializer).Name}: end testing collection/enum");
         }
@@ -116,6 +138,7 @@ namespace Test
             Debug.Assert(p2.NestedSerializable.DictField[789] == p1.NestedSerializable.DictField[789]);
 
             p1.NullableField = 56789;
+            p1.ArrayField[0] = "Greatwall";
             p1.DictField.Add("First", new NestedUnit { FloatField = 556 });
             p1.FlagField = FileModeEnum.Read | FileModeEnum.Write;
             mem.Seek(0, SeekOrigin.Begin);
@@ -126,6 +149,19 @@ namespace Test
             Debug.Assert(p2.NullableField.Value == 56789);
             Debug.Assert(p2.DictField["First"].FloatField == 556);
             Debug.Assert(p2.FlagField == p1.FlagField);
+
+            p1.Dict1["hello"] = 123;
+            p1.Dict2["hello"] = "world";
+            p1.Dict3[123] = "hello";
+            p1.Dict4[123] = 456;
+            mem.Seek(0, SeekOrigin.Begin);
+            await serializer.SerializeAsync(p1);
+            mem.Seek(0, SeekOrigin.Begin);
+            p2 = await serializer.DeserializeAsync<CollectionUnit>();
+            Debug.Assert(p2.Dict1["hello"] == 123);
+            Debug.Assert(p2.Dict2["hello"] == "world");
+            Debug.Assert(p2.Dict3[123] == "hello");
+            Debug.Assert(p2.Dict4[123] == 456);
 
             Console.WriteLine($"{DateTime.Now} {typeof(TSerializer).Name} async: end testing collection/enum");
         }

@@ -66,9 +66,12 @@ namespace GSerialize
         private static string GenerateCode(List<Type> types)
         {
             var code = new List<String>();
-            code.Add("using System.IO;");
-            code.Add("using GSerialize;");
+
+            code.Add("using System;"); 
+            code.Add("using System.IO;");                       
+            code.Add("using System.Threading;");
             code.Add("using System.Threading.Tasks;");
+            code.Add("using GSerialize;");
             code.Add("namespace GSerialize.Generated {");            
 
             foreach(var t in types)
@@ -143,7 +146,8 @@ namespace GSerialize
             }
             code.Add("}");
 
-            code.Add($"public static async Task WriteAsync({type.VisibleClassName()} value, Serializer serializer)");
+            code.Add($"public static async Task WriteAsync({type.VisibleClassName()} value,");
+            code.Add("Serializer serializer, CancellationToken cancellation)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");
             foreach (var p in FindProperties(type))
@@ -164,8 +168,16 @@ namespace GSerialize
                 code.Add(statementWrite);
                 code.Add("}");
             }
+            else if (p.MemberType.IsValueType)
+            {
+                code.Add($"{statementWrite}");
+            }
             else
             {
+                code.Add($"if (value.{p.MemberName} == null)");
+                code.Add("{");
+                code.Add($"throw new ArgumentNullException(\"{p.MemberName}\");");            
+                code.Add("}");
                 code.Add(statementWrite);
             }
             return code;
@@ -176,13 +188,21 @@ namespace GSerialize
             var code = new List<string>();
             if (p.IsOptional)
             {
-                code.Add($"if (value.{p.MemberName} == null) await packer.WriteBoolAsync(false);");
-                code.Add("else { await packer.WriteBoolAsync(true);");
+                code.Add($"if (value.{p.MemberName} == null) await packer.WriteBoolAsync(false, cancellation);");
+                code.Add("else { await packer.WriteBoolAsync(true, cancellation);");
                 code.Add($"await {statementWrite}");
                 code.Add("}");
             }
+            else if (p.MemberType.IsValueType)
+            {
+                code.Add($"await {statementWrite}");
+            }
             else
             {
+                code.Add($"if (value.{p.MemberName} == null)");
+                code.Add("{");
+                code.Add($"throw new ArgumentNullException(\"{p.MemberName}\");");            
+                code.Add("}");
                 code.Add($"await {statementWrite}");
             }
             return code;
@@ -228,7 +248,8 @@ namespace GSerialize
             code.Add("};");
             code.Add("}");
 
-            code.Add($"public static async Task<{ReturnClassName}> ReadAsync(Serializer serializer)");
+            code.Add($"public static async Task<{ReturnClassName}> ReadAsync(Serializer serializer,");
+            code.Add("CancellationToken cancellation)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");           
             code.Add($"return new {ReturnClassName}");
@@ -258,7 +279,7 @@ namespace GSerialize
         {
             if (p.IsOptional)
             {
-                return $"{p.MemberName} = ((await packer.ReadBoolAsync()) ? await {statementRead} : null),";
+                return $"{p.MemberName} = ((await packer.ReadBoolAsync(cancellation)) ? await {statementRead} : null),";
             }
             else
             {
@@ -328,12 +349,18 @@ namespace GSerialize
     {
         internal static bool IsOptional(this PropertyInfo info)
         {
-            return !info.PropertyType.IsValueType && info.IsDefined(typeof(OptionalAttribute), inherit: false);
+            if (info.PropertyType.Name == "Nullable`1") return true;
+            if (info.PropertyType.IsValueType) return false;
+            
+            return info.IsDefined(typeof(OptionalAttribute), inherit: false);
         }
 
         internal static bool IsOptional(this FieldInfo info)
         {
-            return !info.FieldType.IsValueType && info.IsDefined(typeof(OptionalAttribute), inherit: false);
+            if (info.FieldType.Name == "Nullable`1") return true;
+            if (info.FieldType.IsValueType) return false;
+            
+            return info.IsDefined(typeof(OptionalAttribute), inherit: false);
         }
 
         internal static bool IsIgnored(this MemberInfo info)
@@ -419,7 +446,7 @@ namespace GSerialize
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"packer.Read{_packerTypeName}Async()";
+            return $"packer.Read{_packerTypeName}Async(cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
@@ -429,7 +456,7 @@ namespace GSerialize
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"packer.Write{_packerTypeName}Async(value.{p.MemberName});";
+            return $"packer.Write{_packerTypeName}Async(value.{p.MemberName}, cancellation);";
         }
     }
 
@@ -447,7 +474,7 @@ namespace GSerialize
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"{p.MemberType.GeneratedClassName()}.ReadAsync(serializer)";
+            return $"{p.MemberType.GeneratedClassName()}.ReadAsync(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
@@ -457,7 +484,7 @@ namespace GSerialize
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"{p.MemberType.GeneratedClassName()}.WriteAsync(value.{p.MemberName}, serializer);";
+            return $"{p.MemberType.GeneratedClassName()}.WriteAsync(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 
@@ -477,7 +504,7 @@ namespace GSerialize
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
             var itemType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker.ReadListAsync<{itemType.VisibleClassName()}>(serializer)";
+            return $"CollectionPacker.ReadListAsync<{itemType.VisibleClassName()}>(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
@@ -489,7 +516,7 @@ namespace GSerialize
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
             var itemType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker.WriteListAsync<{itemType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+            return $"CollectionPacker.WriteListAsync<{itemType.VisibleClassName()}>(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 
@@ -509,7 +536,7 @@ namespace GSerialize
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
             var elementType = p.MemberType.GetElementType();
-            return $"CollectionPacker.ReadArrayAsync<{elementType.VisibleClassName()}>(serializer)";
+            return $"CollectionPacker.ReadArrayAsync<{elementType.VisibleClassName()}>(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
@@ -521,7 +548,7 @@ namespace GSerialize
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
             var elementType = p.MemberType.GetElementType();
-            return $"CollectionPacker.WriteArrayAsync<{elementType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+            return $"CollectionPacker.WriteArrayAsync<{elementType.VisibleClassName()}>(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 
@@ -543,7 +570,7 @@ namespace GSerialize
         {
             var keyType = p.MemberType.GetGenericArguments()[0];
             var valueType = p.MemberType.GetGenericArguments()[1];
-            return $"CollectionPacker.ReadDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(serializer)";
+            return $"CollectionPacker.ReadDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
@@ -557,7 +584,7 @@ namespace GSerialize
         {
             var keyType = p.MemberType.GetGenericArguments()[0];
             var valueType = p.MemberType.GetGenericArguments()[1];
-            return $"CollectionPacker.WriteDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+            return $"CollectionPacker.WriteDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 
@@ -575,7 +602,7 @@ namespace GSerialize
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"CollectionPacker.ReadEnumAsync<{p.MemberType.VisibleClassName()}>(serializer)";
+            return $"CollectionPacker.ReadEnumAsync<{p.MemberType.VisibleClassName()}>(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
@@ -585,7 +612,7 @@ namespace GSerialize
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"CollectionPacker.WriteEnumAsync<{p.MemberType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+            return $"CollectionPacker.WriteEnumAsync<{p.MemberType.VisibleClassName()}>(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 
@@ -605,7 +632,7 @@ namespace GSerialize
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
             var valueType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker.ReadNullableAsync<{valueType.VisibleClassName()}>(serializer)";
+            return $"CollectionPacker.ReadNullableAsync<{valueType.VisibleClassName()}>(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
@@ -617,7 +644,7 @@ namespace GSerialize
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
             var valueType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker.WriteNullableAsync<{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+            return $"CollectionPacker.WriteNullableAsync<{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 }

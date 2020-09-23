@@ -8,6 +8,7 @@
  
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace GSerialize
@@ -23,9 +24,10 @@ namespace GSerialize
 
         public static Task WriteStringAsync(
             string value, Serializer2 Serializer2,
-            Dictionary<Object, int> cache)
+            Dictionary<Object, int> cache,
+            CancellationToken cancellation)
         {
-            return Serializer2.WriteStringAsync(value, cache);
+            return Serializer2.WriteStringAsync(value, cache, cancellation);
         }
 
         public static string ReadString(Serializer2 Serializer2, Dictionary<int, Object> cache)
@@ -33,9 +35,12 @@ namespace GSerialize
             return Serializer2.ReadString(cache);
         }
 
-        public static Task<string> ReadStringAsync(Serializer2 Serializer2, Dictionary<int, Object> cache)
+        public static Task<string> ReadStringAsync(
+            Serializer2 Serializer2, 
+            Dictionary<int, Object> cache,
+            CancellationToken cancellation)
         {
-            return Serializer2.ReadStringAsync(cache);
+            return Serializer2.ReadStringAsync(cache, cancellation);
         }
 
         public static void WriteList<T>(
@@ -47,9 +52,10 @@ namespace GSerialize
 
         public static Task WriteListAsync<T>(
             List<T> list, Serializer2 Serializer2,
-            Dictionary<Object, int> cache)
+            Dictionary<Object, int> cache,
+            CancellationToken cancellation)
         {
-            return Serializer2.WriteEnumerableAsync(list, cache);
+            return Serializer2.WriteEnumerableAsync(list, cache, cancellation);
         }
 
         public static List<T> ReadList<T>(Serializer2 Serializer2, Dictionary<int, Object> cache)
@@ -57,9 +63,12 @@ namespace GSerialize
             return Serializer2.ReadList<T>(cache);
         }
 
-        public static Task<List<T>> ReadListAsync<T>(Serializer2 Serializer2, Dictionary<int, Object> cache)
+        public static Task<List<T>> ReadListAsync<T>(
+            Serializer2 Serializer2, 
+            Dictionary<int, Object> cache,
+            CancellationToken cancellation)
         {
-            return Serializer2.ReadListAsync<T>(cache);
+            return Serializer2.ReadListAsync<T>(cache, cancellation);
         }
 
         public static void WriteArray<T>(
@@ -72,9 +81,10 @@ namespace GSerialize
 
         public static Task WriteArrayAsync<T>(
             T[] array, Serializer2 Serializer2,
-            Dictionary<Object, int> cache)
+            Dictionary<Object, int> cache,
+            CancellationToken cancellation)
         {
-            return Serializer2.WriteEnumerableAsync(array, cache);
+            return Serializer2.WriteEnumerableAsync(array, cache, cancellation);
         }
 
         public static T[] ReadArray<T>(Serializer2 Serializer2, Dictionary<int, Object> cache)
@@ -84,23 +94,26 @@ namespace GSerialize
 
         public async static Task<T[]> ReadArrayAsync<T>(
             Serializer2 Serializer2, 
-            Dictionary<int, Object> cache)
+            Dictionary<int, Object> cache,
+            CancellationToken cancellation)
         {
-            return await Serializer2.ReadArrayAsync<T>(cache);
+            return await Serializer2.ReadArrayAsync<T>(cache, cancellation);
         }
 
         public static void WriteDict<K, V>(
-            Dictionary<K, V> dict, Serializer2 Serializer2,
+            Dictionary<K, V> value, Serializer2 Serializer2,
             Dictionary<Object, int> cache)
         {
-            Serializer2.WriteDict(dict, cache);
+            Serializer2.WriteDict(value, cache);
         }
 
         public static Task WriteDictAsync<K, V>(
-            Dictionary<K, V> dict, Serializer2 Serializer2,
-            Dictionary<Object, int> cache)
+            Dictionary<K, V> value, 
+            Serializer2 Serializer2,
+            Dictionary<Object, int> cache,
+            CancellationToken cancellation)
         {
-            return Serializer2.WriteDictAsync(dict, cache);
+            return Serializer2.WriteDictAsync(value, cache, cancellation);
         }
 
         public static Dictionary<K, V> ReadDict<K, V>(
@@ -112,9 +125,10 @@ namespace GSerialize
 
         public static Task<Dictionary<K, V>> ReadDictAsync<K, V>(
             Serializer2 Serializer2, 
-            Dictionary<int, Object> cache)
+            Dictionary<int, Object> cache,
+            CancellationToken cancellation)
         {
-            return Serializer2.ReadDictAsync<K, V>(cache);
+            return Serializer2.ReadDictAsync<K, V>(cache,  cancellation);
         }
 
         public static void WriteNullable<T>(T? value, Serializer2 Serializer2) where T : struct
@@ -126,12 +140,14 @@ namespace GSerialize
             }
         }
 
-        public static async Task WriteNullableAsync<T>(T? value, Serializer2 Serializer2) where T : struct
+        public static async Task WriteNullableAsync<T>(
+            T? value, Serializer2 Serializer2,
+            CancellationToken cancellation) where T : struct
         {
-            await Serializer2.Packer.WriteBoolAsync(value.HasValue);
+            await Serializer2.Packer.WriteBoolAsync(value.HasValue, cancellation);
             if (value.HasValue)
             {
-                await Serializer2.SerializeAsync<T>(value.Value);
+                await Serializer2.SerializeAsync<T>(value.Value, cancellation);
             }
         }
 
@@ -148,12 +164,14 @@ namespace GSerialize
             }
         }
 
-        public static async Task<T?> ReadNullableAsync<T>(Serializer2 Serializer2) where T : struct
+        public static async Task<T?> ReadNullableAsync<T>(
+            Serializer2 Serializer2,
+            CancellationToken cancellation) where T : struct
         {
-            var hasValue = await Serializer2.Packer.ReadBoolAsync();
+            var hasValue = await Serializer2.Packer.ReadBoolAsync(cancellation);
             if (hasValue)
             {
-                return await Serializer2.DeserializeAsync<T>();
+                return await Serializer2.DeserializeAsync<T>(cancellation);
             }
             else
             {
@@ -166,9 +184,11 @@ namespace GSerialize
             Serializer2.Packer.WriteString(value.ToString());
         }
 
-        public static Task WriteEnumAsync<T>(T value, Serializer2 Serializer2) where T : Enum
+        public static Task WriteEnumAsync<T>(
+            T value, Serializer2 Serializer2,
+            CancellationToken cancellation) where T : Enum
         {
-            return Serializer2.Packer.WriteStringAsync(value.ToString());
+            return Serializer2.Packer.WriteStringAsync(value.ToString(), cancellation);
         }
 
         public static T ReadEnum<T>(Serializer2 Serializer2) where T : struct
@@ -178,9 +198,11 @@ namespace GSerialize
             return value;
         }
 
-        public static async Task<T> ReadEnumAsync<T>(Serializer2 Serializer2) where T : struct
+        public static async Task<T> ReadEnumAsync<T>(
+            Serializer2 Serializer2,
+            CancellationToken cancellation) where T : struct
         {
-            var str = await Serializer2.Packer.ReadStringAsync();
+            var str = await Serializer2.Packer.ReadStringAsync(cancellation);
             Enum.TryParse(str, out T value);
             return value;
         }

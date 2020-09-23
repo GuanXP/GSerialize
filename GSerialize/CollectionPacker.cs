@@ -8,6 +8,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace GSerialize
@@ -19,9 +20,11 @@ namespace GSerialize
             serializer.WriteEnumerable(list);
         }
 
-        public static Task WriteListAsync<T>(List<T> list, Serializer serializer)
+        public static Task WriteListAsync<T>(
+            List<T> list, Serializer serializer,
+            CancellationToken cancellation)
         {
-            return serializer.WriteEnumerableAsync(list);
+            return serializer.WriteEnumerableAsync(list, cancellation);
         }
 
         public static List<T> ReadList<T>(Serializer serializer)
@@ -29,9 +32,9 @@ namespace GSerialize
             return serializer.ReadList<T>();
         }
 
-        public static Task<List<T>> ReadListAsync<T>(Serializer serializer)
+        public static Task<List<T>> ReadListAsync<T>(Serializer serializer, CancellationToken cancellation)
         {
-            return serializer.ReadListAsync<T>();
+            return serializer.ReadListAsync<T>(cancellation);
         }
 
         public static void WriteArray<T>(T[] array, Serializer serializer)
@@ -39,9 +42,11 @@ namespace GSerialize
             serializer.WriteEnumerable(array);
         }
 
-        public static Task WriteArrayAsync<T>(T[] array, Serializer serializer)
+        public static Task WriteArrayAsync<T>(
+            T[] array, Serializer serializer, 
+            CancellationToken cancellation)
         {
-            return serializer.WriteEnumerableAsync(array);
+            return serializer.WriteEnumerableAsync(array, cancellation);
         }
 
         public static T[] ReadArray<T>(Serializer serializer)
@@ -49,9 +54,9 @@ namespace GSerialize
             return serializer.ReadList<T>().ToArray();
         }
 
-        public async static Task<T[]> ReadArrayAsync<T>(Serializer serializer)
+        public async static Task<T[]> ReadArrayAsync<T>(Serializer serializer, CancellationToken cancellation)
         {
-            return (await serializer.ReadListAsync<T>()).ToArray();
+            return (await serializer.ReadListAsync<T>(cancellation)).ToArray();
         }
 
         public static void WriteDict<K, V>(Dictionary<K, V> dict, Serializer serializer)
@@ -59,9 +64,11 @@ namespace GSerialize
             serializer.WriteDict(dict);
         }
 
-        public static Task WriteDictAsync<K, V>(Dictionary<K, V> dict, Serializer serializer)
+        public static Task WriteDictAsync<K, V>(
+            Dictionary<K, V> dict, Serializer serializer,
+            CancellationToken cancellation)
         {
-            return serializer.WriteDictAsync(dict);
+            return serializer.WriteDictAsync(dict, cancellation);
         }
 
         public static Dictionary<K, V> ReadDict<K, V>(Serializer serializer)
@@ -69,53 +76,36 @@ namespace GSerialize
             return serializer.ReadDict<K, V>();
         }
 
-        public static Task<Dictionary<K, V>> ReadDictAsync<K, V>(Serializer serializer)
+        public static Task<Dictionary<K, V>> ReadDictAsync<K, V>(
+            Serializer serializer, CancellationToken cancellation)
         {
-            return serializer.ReadDictAsync<K, V>();
+            return serializer.ReadDictAsync<K, V>(cancellation);
         }
 
         public static void WriteNullable<T>(T? value, Serializer serializer) where T : struct
         {
-            serializer.Packer.WriteBool(value.HasValue);
-            if (value.HasValue)
-            {
-                serializer.Serialize<T>(value.Value);
-            }
+            System.Diagnostics.Debug.Assert(value.HasValue);
+            serializer.Serialize<T>(value.Value);
         }
 
-        public static async Task WriteNullableAsync<T>(T? value, Serializer serializer) where T : struct
+        public static async Task WriteNullableAsync<T>(
+            T? value, Serializer serializer,
+            CancellationToken cancellation) where T : struct
         {
-            await serializer.Packer.WriteBoolAsync(value.HasValue);
-            if (value.HasValue)
-            {
-                await serializer.SerializeAsync<T>(value.Value);
-            }
+            System.Diagnostics.Debug.Assert(value.HasValue);
+            await serializer.SerializeAsync<T>(value.Value, cancellation);
         }
 
         public static T? ReadNullable<T>(Serializer serializer) where T : struct
         {
-            var hasValue = serializer.Packer.ReadBool();
-            if (hasValue)
-            {
-                return serializer.Deserialize<T>();
-            }
-            else
-            {
-                return null;
-            }
+            return serializer.Deserialize<T>();
         }
 
-        public static async Task<T?> ReadNullableAsync<T>(Serializer serializer) where T : struct
+        public static async Task<T?> ReadNullableAsync<T>(
+            Serializer serializer,
+            CancellationToken cancellation) where T : struct
         {
-            var hasValue = await serializer.Packer.ReadBoolAsync();
-            if (hasValue)
-            {
-                return await serializer.DeserializeAsync<T>();
-            }
-            else
-            {
-                return null;
-            }
+            return await serializer.DeserializeAsync<T>(cancellation);
         }
 
         public static void WriteEnum<T>(T value, Serializer serializer) where T : Enum
@@ -123,9 +113,11 @@ namespace GSerialize
             serializer.Packer.WriteString(value.ToString());
         }
 
-        public static Task WriteEnumAsync<T>(T value, Serializer serializer) where T : Enum
+        public static Task WriteEnumAsync<T>(
+            T value, Serializer serializer,
+            CancellationToken cancellation) where T : Enum
         {
-            return serializer.Packer.WriteStringAsync(value.ToString());
+            return serializer.Packer.WriteStringAsync(value.ToString(), cancellation);
         }
 
         public static T ReadEnum<T>(Serializer serializer) where T : struct
@@ -135,9 +127,11 @@ namespace GSerialize
             return value;
         }
 
-        public static async Task<T> ReadEnumAsync<T>(Serializer serializer) where T : struct
+        public static async Task<T> ReadEnumAsync<T>(
+            Serializer serializer,
+            CancellationToken cancellation) where T : struct
         {
-            var str = await serializer.Packer.ReadStringAsync();
+            var str = await serializer.Packer.ReadStringAsync(cancellation);
             Enum.TryParse(str, out T value);
             return value;
         }
