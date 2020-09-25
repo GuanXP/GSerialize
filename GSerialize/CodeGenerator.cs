@@ -168,16 +168,8 @@ namespace GSerialize
                 code.Add(statementWrite);
                 code.Add("}");
             }
-            else if (p.MemberType.IsValueType)
-            {
-                code.Add($"{statementWrite}");
-            }
             else
             {
-                code.Add($"if (value.{p.MemberName} == null)");
-                code.Add("{");
-                code.Add($"throw new ArgumentNullException(\"{p.MemberName}\");");            
-                code.Add("}");
                 code.Add(statementWrite);
             }
             return code;
@@ -193,16 +185,8 @@ namespace GSerialize
                 code.Add($"await {statementWrite}");
                 code.Add("}");
             }
-            else if (p.MemberType.IsValueType)
-            {
-                code.Add($"await {statementWrite}");
-            }
             else
             {
-                code.Add($"if (value.{p.MemberName} == null)");
-                code.Add("{");
-                code.Add($"throw new ArgumentNullException(\"{p.MemberName}\");");            
-                code.Add("}");
                 code.Add($"await {statementWrite}");
             }
             return code;

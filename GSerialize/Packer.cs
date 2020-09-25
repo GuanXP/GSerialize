@@ -118,11 +118,6 @@ namespace GSerialize
 
         public void WriteString(String value)
         {
-            if (value == null)
-            {
-                WriteInt32(-1);
-                return;
-            }
             var len = _encoding.GetByteCount(value);
             var bytes = len <= _stringBuffer.Length ? _stringBuffer : new byte[len];
             _encoding.GetBytes(value, 0, value.Length, bytes, 0);
@@ -132,11 +127,6 @@ namespace GSerialize
 
         public async Task WriteStringAsync(String value, CancellationToken cancellation)
         {
-            if (value == null)
-            {
-                await WriteInt32Async(-1, cancellation);
-                return;
-            }
             var len = _encoding.GetByteCount(value);
             var bytes = len <= _stringBuffer.Length ? _stringBuffer : new byte[len];
             _encoding.GetBytes(value, 0, value.Length, bytes, 0);
@@ -147,7 +137,6 @@ namespace GSerialize
         public String ReadString()
         {
             var len = ReadInt32();
-            if (len < 0) return null;
             if (len > 0)
             {
                 var bytes = len <= _stringBuffer.Length ? _stringBuffer : new byte[len];
@@ -162,7 +151,6 @@ namespace GSerialize
         public async Task<String> ReadStringAsync(CancellationToken cancellation)
         {
             var len = await ReadInt32Async(cancellation);
-            if (len < 0) return null;
             if (len > 0)
             {
                 var bytes = len <= _stringBuffer.Length ? _stringBuffer : new byte[len];
