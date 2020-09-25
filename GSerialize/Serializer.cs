@@ -119,17 +119,19 @@ namespace GSerialize
         /// <param name="cancellation">token to cancel the pending IO</param>
         public Task SerializeAsync<T>(T value, CancellationToken cancellation)
         {
-            MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
+            MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);            
+            
+            _paramsWrittingPackerAsync[1] = cancellation;
             if (packerMethods != null)
             {
-                _paramsWrittingPackerAsync[0] = value;
-                _paramsWrittingPackerAsync[1] = cancellation;
+                _paramsWrittingPackerAsync[0] = value;                
                 return (Task)packerMethods.WriteAsync.Invoke(Packer, _paramsWrittingPackerAsync);
             }
             else
             {
-                _paramsWrittingAsync[0] = value;
                 _paramsWrittingAsync[2] = cancellation;
+
+                _paramsWrittingAsync[0] = value;
                 return (Task)methods.WriteAsync.Invoke(null, _paramsWrittingAsync);
             }
         }
@@ -167,7 +169,6 @@ namespace GSerialize
             await Packer.WriteInt32Async(value.Count(), cancellation);
             if (packerMethods != null)
             {
-                _paramsWrittingPackerAsync[1] = cancellation;
                 foreach (var item in value)
                 {
                     _paramsWrittingPackerAsync[0] = item;                    
@@ -176,7 +177,6 @@ namespace GSerialize
             }
             else
             {
-                _paramsWrittingAsync[2] = cancellation;
                 foreach (var item in value)
                 {
                     _paramsWrittingAsync[0] = item;
@@ -241,7 +241,6 @@ namespace GSerialize
             await Packer.WriteInt32Async(value.Count(), cancellation);
             if (packerMethodsK != null && packerMethodsV != null)
             {
-                _paramsWrittingPackerAsync[1] = cancellation;
                 foreach (var item in value)
                 {
                     _paramsWrittingPackerAsync[0] = item.Key;
@@ -252,8 +251,6 @@ namespace GSerialize
             }
             else if (packerMethodsK != null && methodsV != null)
             {
-                _paramsWrittingAsync[2] = cancellation;
-                _paramsWrittingPackerAsync[1] = cancellation;
                 foreach (var item in value)
                 {
                     _paramsWrittingPackerAsync[0] = item.Key;
@@ -264,7 +261,6 @@ namespace GSerialize
             }
             else if (methodsK != null && methodsV != null)
             {
-                _paramsWrittingAsync[2] = cancellation;
                 foreach (var item in value)
                 {
                     _paramsWrittingAsync[0] = item.Key;
@@ -275,8 +271,6 @@ namespace GSerialize
             }
             else
             {
-                _paramsWrittingAsync[2] = cancellation;
-                _paramsWrittingPackerAsync[1] = cancellation;
                 foreach (var item in value)
                 {
                     _paramsWrittingAsync[0] = item.Key;
@@ -342,7 +336,6 @@ namespace GSerialize
             var dict = new Dictionary<K, V>(capacity: count);
             if (packerMethodsK != null && packerMethodsV != null)
             {
-                _paramsReadingPackerAsync[0] = cancellation;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = await (Task<K>)packerMethodsK.ReadAsync.Invoke(Packer, _paramsReadingPackerAsync);
@@ -352,8 +345,6 @@ namespace GSerialize
             }
             else if (packerMethodsK != null && methodsV != null)
             {
-                _paramsReadingPackerAsync[0] = cancellation;
-                _paramsReadingAsync[1] = cancellation;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = await (Task<K>)packerMethodsK.ReadAsync.Invoke(Packer, _paramsReadingPackerAsync);
@@ -363,7 +354,6 @@ namespace GSerialize
             }
             else if (methodsK != null && methodsV != null)
             {
-                _paramsReadingAsync[1] = cancellation;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = await (Task<K>)methodsK.ReadAsync.Invoke(null, _paramsReadingAsync);
@@ -373,8 +363,6 @@ namespace GSerialize
             }
             else
             {
-                _paramsReadingPackerAsync[0] = cancellation;
-                _paramsReadingAsync[1] = cancellation;
                 for (var i = 0; i < count; ++i)
                 {
                     var k = await (Task<K>)methodsK.ReadAsync.Invoke(null, _paramsReadingAsync);
@@ -415,9 +403,10 @@ namespace GSerialize
         public Task<T> DeserializeAsync<T>(CancellationToken cancellation)
         {
             MethodsForType(typeof(T), out SerialMethods packerMethods, out SerialMethods methods);
+            
+            _paramsReadingPackerAsync[0] = cancellation;
             if (packerMethods != null)
             {
-                _paramsReadingPackerAsync[0] = cancellation;
                 return (Task<T>)packerMethods.ReadAsync.Invoke(Packer, _paramsReadingPackerAsync);
             }
             else
@@ -463,7 +452,6 @@ namespace GSerialize
 
             if (packerMethods != null)
             {
-                _paramsReadingPackerAsync[0] = cancellation;
                 for (var i = 0; i < count; ++i)
                 {
                     list.Add(await (Task<T>)packerMethods.ReadAsync.Invoke(Packer, _paramsReadingPackerAsync));
@@ -471,7 +459,6 @@ namespace GSerialize
             }
             else
             {
-                _paramsReadingAsync[1] = cancellation;
                 for (var i = 0; i < count; ++i)
                 {
                     list.Add(await (Task<T>)methods.ReadAsync.Invoke(null, _paramsReadingAsync));
