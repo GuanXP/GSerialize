@@ -30,7 +30,7 @@ namespace Test
         Write = 1 << 1
     }
 
-    [GSerializable]
+    [Serializable]
     public class CollectionUnit
     {
         public Int64? NullableField;

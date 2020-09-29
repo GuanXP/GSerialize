@@ -140,7 +140,7 @@ namespace GSerialize
             code.Add($"public static void Write({type.VisibleClassName()} value, Serializer serializer)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {                
                 code.AddRange(GeneratePropertyWrite(p));
             }
@@ -150,7 +150,7 @@ namespace GSerialize
             code.Add("Serializer serializer, CancellationToken cancellation)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {                
                 code.AddRange(GeneratePropertyAsyncWrite(p));
             }
@@ -225,7 +225,7 @@ namespace GSerialize
             code.Add("var packer = serializer.Packer;");           
             code.Add($"return new {ReturnClassName}");
             code.Add("{");
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {                
                 code.Add(GeneratePropertyRead(p));
             }
@@ -238,7 +238,7 @@ namespace GSerialize
             code.Add("var packer = serializer.Packer;");           
             code.Add($"return new {ReturnClassName}");
             code.Add("{");
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {                
                 code.Add(GeneratePropertyAsyncRead(p));
             }
@@ -294,111 +294,7 @@ namespace GSerialize
             }
             throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
         }
-
-        private static List<PropertyFieldInfo> FindProperties(Type type)
-        {
-            var result = new List<PropertyFieldInfo>();
-            var properties = from p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                where p.CanWrite && p.CanRead && !p.IsIgnored()
-                select p;
-            foreach(var p in properties)
-            {
-                result.Add(new PropertyFieldInfo 
-                {
-                    MemberType = p.PropertyType, 
-                    MemberName = p.Name,
-                    IsOptional = p.IsOptional()
-                });
-            }
-
-            var fields = from f in type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-                where !f.IsInitOnly && !f.IsIgnored()
-                select f;
-
-            foreach (var f in fields)
-            {
-                result.Add(new PropertyFieldInfo 
-                { 
-                    MemberType = f.FieldType, 
-                    MemberName = f.Name,
-                    IsOptional = f.IsOptional()
-                });
-            }
-            result.Sort((x,y)=>string.Compare(x.MemberName, y.MemberName));
-            return result;
-        }        
-    }
-
-    static class MemberInfoExtension
-    {
-        internal static bool IsOptional(this PropertyInfo info)
-        {
-            if (info.PropertyType.Name == "Nullable`1") return true;
-            if (info.PropertyType.IsValueType) return false;
-            
-            return info.IsDefined(typeof(OptionalAttribute), inherit: false);
-        }
-
-        internal static bool IsOptional(this FieldInfo info)
-        {
-            if (info.FieldType.Name == "Nullable`1") return true;
-            if (info.FieldType.IsValueType) return false;
-            
-            return info.IsDefined(typeof(OptionalAttribute), inherit: false);
-        }
-
-        internal static bool IsIgnored(this MemberInfo info)
-        {
-            return info.IsDefined(typeof(IgnoredAttribute), inherit: false) ||
-                info.IsDefined(typeof(NonSerializedAttribute), inherit: false);
-        }
-    }
-
-    static class TypeExtension
-    {
-        internal static string GeneratedClassName(this Type type)
-        {
-            return $"Serial_{type.FullName.Replace('.', '_').Replace('+', '_')}";
-        }
-
-        internal static string GeneratedFullClassName(this Type type)
-        {
-            return $"GSerialize.Generated.{type.GeneratedClassName()}";
-        }
-
-        internal static string VisibleClassName(this Type type)
-        {
-            if (type.Name == "List`1")
-            {
-                var elementType = type.GetGenericArguments()[0];
-                return $"List<{elementType.VisibleClassName()}>";
-            }
-            if (type.Name == "Dictionary`2")
-            {
-                var kType = type.GetGenericArguments()[0];
-                var vType = type.GetGenericArguments()[1];
-                return $"Dictionary<{kType.VisibleClassName()}, {vType.VisibleClassName()}>";
-            }
-            if (type.IsArray)
-            {
-                var elementType = type.GetElementType();
-                return $"{elementType.VisibleClassName()}[]";
-            }
-            return type.FullName.Replace('+', '.');
-        }
-
-        internal static bool IsGSerializable(this Type type)
-        {
-            return type.IsDefined(typeof(GSerializableAttribute), false);
-        }
-    }
-
-    class PropertyFieldInfo
-    {
-        internal Type MemberType;
-        internal string MemberName;
-        internal bool IsOptional;
-    }
+    }    
 
     interface StatementGenerator
     {
@@ -449,7 +345,7 @@ namespace GSerialize
     {
         public bool Matches(PropertyFieldInfo p)
         {
-            return p.MemberType.IsDefined(typeof(GSerializableAttribute), inherit: false);
+            return p.MemberType.IsSerializableClass();
         }
 
         public string ReadingStatement(PropertyFieldInfo p)

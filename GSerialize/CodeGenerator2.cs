@@ -161,7 +161,7 @@ namespace GSerialize
             code.Add("packer.WriteInt32(id);");
             code.Add("}");
 
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {               
                 code.Add("{"); 
                 code.AddRange(GeneratePropertyWrite(p));
@@ -186,7 +186,7 @@ namespace GSerialize
             code.Add("await packer.WriteInt32Async(id, cancellation);");
             code.Add("}");
 
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {                
                 code.Add("{");
                 code.AddRange(GeneratePropertyAsyncWrite(p));
@@ -286,7 +286,7 @@ namespace GSerialize
             code.Add($"var result = new {ReturnClassName}();");
             code.Add("cache[refId] = result;");
             
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {                
                 code.Add("{");
                 code.AddRange(GeneratePropertyRead(p));
@@ -305,7 +305,7 @@ namespace GSerialize
             code.Add($"var result = new {ReturnClassName}();");
             code.Add("cache[refId] = result;");
             
-            foreach (var p in FindProperties(type))
+            foreach (var p in PropertyFieldInfo.FindProperties(type))
             {                
                 code.Add("{");
                 code.AddRange(GeneratePropertyAsyncRead(p));
@@ -386,53 +386,7 @@ namespace GSerialize
                 }
             }
             throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
-        }
-
-        private static List<PropertyFieldInfo> FindProperties(Type type)
-        {
-            var result = new List<PropertyFieldInfo>();
-            var properties = from p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                where p.CanWrite && p.CanRead && !p.IsIgnored()
-                select p;
-            foreach(var p in properties)
-            {
-                result.Add(new PropertyFieldInfo 
-                {
-                    MemberType = p.PropertyType, 
-                    MemberName = p.Name,
-                    IsOptional = p.IsOptional()
-                });
-            }
-
-            var fields = from f in type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-                where !f.IsInitOnly && !f.IsIgnored()
-                select f;
-
-            foreach (var f in fields)
-            {
-                result.Add(new PropertyFieldInfo 
-                { 
-                    MemberType = f.FieldType, 
-                    MemberName = f.Name,
-                    IsOptional = f.IsOptional()
-                });
-            }
-            result.Sort((x,y)=>string.Compare(x.MemberName, y.MemberName));
-            return result;
         }        
-    }
-
-    static class TypeExtension2
-    {
-        internal static string GeneratedClassName2(this Type type)
-        {
-            return $"Serial2_{type.FullName.Replace('.', '_').Replace('+', '_')}";
-        }
-
-        internal static string GeneratedFullClassName2(this Type type)
-        {
-            return $"GSerialize.Generated.{type.GeneratedClassName2()}";
-        }
     }
 
     interface StatementGenerator2
@@ -487,7 +441,7 @@ namespace GSerialize
     {
         public bool Matches(PropertyFieldInfo p)
         {
-            return p.MemberType.IsDefined(typeof(GSerializableAttribute), inherit: false);
+            return p.MemberType.IsSerializableClass();
         }
 
         public bool NeedCheckReference => true;

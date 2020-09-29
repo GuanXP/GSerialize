@@ -25,7 +25,7 @@ namespace GSerialize
         {
             var referencedAssemblies = DependencyWalker.GetReferencedAssemblies(assembly);
             var serializingTypes = DependencyWalker.CollectSatisfiedType(referencedAssemblies, 
-                t=>t.IsGSerializable() && !t.IsAbstract && t.IsPublic);
+                t=>t.IsSerializableClass());
             var firstSerialabeType = serializingTypes.FirstOrDefault();
             if (firstSerialabeType == null || TypeMethodsMap.ContainsKey(firstSerialabeType)) return;
 
@@ -476,19 +476,12 @@ namespace GSerialize
         private static void CacheSerializable(Type serializableType)
         {
             if (TypeMethodsMap.ContainsKey(serializableType)) return;
-            if (!serializableType.IsGSerializable())
+            if (!serializableType.IsSerializableClass())
             {
-                throw new NotSupportedException($"{serializableType.Name} must be a primitive type or class with GSerializable attribute.");
+                var msg = $"{serializableType.Name} must be a primitive type or class with GSerializable attribute, \n";
+                msg += " and must NOT be a generic type, and must be a non-abstract and public type";
+                throw new NotSupportedException(msg);
             }
-            if (serializableType.ContainsGenericParameters)
-            {
-                throw new NotSupportedException($"{serializableType.FullName} must NOT be a generic type");
-            }
-            if (serializableType.IsAbstract || !serializableType.IsPublic)
-            {
-                throw new NotSupportedException($"{serializableType.FullName} must be a non-abstract and public type");
-            }
-
             PrepareForAssembly(serializableType.Assembly);
         }
 

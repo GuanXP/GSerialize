@@ -85,15 +85,15 @@ The field/property can be one of following
 
 #### Sample to define a customized serializable class
 ```C#
-    [GSerializable] //GSerializableAttribute marks this class serializable
+    [Serializable] //SerializableAttribute marks this class serializable
     public class OptionalFieldUnit
     {
-        public string RequiredField; //required field/property must NOT be null
+        [NonNull] //NonNullAttribute marks a field/property non null that will lead a better performance since no null checked while serializing
+        public string RequiredField;
 
-        [Optional]  //OptionalAttribute marks a field/property optional that means it can be null or not
         public string OptionalField;
 
-        [Ignored] //IgnoredAttribute marks a field/property ignored that means it will never be serialized 
+        [NonSerialized] //NonSerializedAttribute marks a field/property ignored that means it will never be serialized 
         public string IgnoredField;
 
         public string ReadOnlyProperty => PrivateField; //readonly field/property will be ignored
@@ -117,7 +117,7 @@ catch(Exception)
 {
     excepted = true;
 }
-Debug.Assert(excepted); //required field/property must NOT be null
+Debug.Assert(excepted); //Non null field/property shall be assigned a object
 
 item1.RequiredField = "hello";
 item1.FullAccessibleProperty = "property";

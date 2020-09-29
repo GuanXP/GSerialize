@@ -14,7 +14,7 @@ using GSerialize;
 
 namespace Test
 {
-    [GSerializable]
+    [Serializable]
     public class RefUnit
     {
         public Dictionary<int, RefUnit> Dict1 = new Dictionary<int, RefUnit>();

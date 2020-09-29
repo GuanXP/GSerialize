@@ -15,15 +15,15 @@ using GSerialize;
 
 namespace Test
 {
-    [GSerializable]
+    [Serializable]
     public class OptionalFieldUnit
     {
+        [NonNull]
         public string RequiredField;
 
-        [Optional]
         public string OptionalField;
 
-        [Ignored]
+        [NonSerialized]
         public string IgnoredField;
 
         public string ReadOnlyProperty => PrivateField;

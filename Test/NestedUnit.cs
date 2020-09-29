@@ -12,7 +12,6 @@ using GSerialize;
 
 namespace Test
 {
-    [GSerializable]
     [Serializable]
     public class NestedUnit
     {
