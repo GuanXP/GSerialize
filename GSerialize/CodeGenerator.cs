@@ -349,7 +349,8 @@ namespace GSerialize
 
         internal static bool IsIgnored(this MemberInfo info)
         {
-            return info.IsDefined(typeof(IgnoredAttribute), inherit: false);
+            return info.IsDefined(typeof(IgnoredAttribute), inherit: false) ||
+                info.IsDefined(typeof(NonSerializedAttribute), inherit: false);
         }
     }
 

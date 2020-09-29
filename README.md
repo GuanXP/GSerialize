@@ -1,6 +1,6 @@
 # About GSerialize
 
-GSerialize is a very fast C# binary serializer based on code generating.
+GSerialize is a very fast and easy to use C# binary serializer based on code generating.
 
 * Support most of primitive types
 * Support customized serializable class
