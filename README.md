@@ -117,7 +117,7 @@ catch(Exception)
 {
     excepted = true;
 }
-Debug.Assert(excepted); //Non null field/property shall be assigned a object
+Debug.Assert(excepted); //Non null field/property shall be assigned an object
 
 item1.RequiredField = "hello";
 item1.FullAccessibleProperty = "property";
@@ -160,4 +160,4 @@ The generating process will take a few seconds, the client code can call Seriali
 
 - GSerialize is not thread safe, so client shall avoid accessing identical instance of Serializer/Serializer2 from variety threads.
 
-- Customized serializable class must provide a default constructor.
+- Customized serializable class must provide a default constructor without parameters.
