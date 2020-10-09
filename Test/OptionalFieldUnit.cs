@@ -94,7 +94,7 @@ namespace Test
             {
                 excepted = true;
             }
-            Debug.Assert(excepted); //必选字段/属性不能为null
+            Debug.Assert(excepted); //NonNull field/property must be assigned with an object
 
             item1.RequiredField = "hello";
             item1.FullAccessibleProperty = "property";
