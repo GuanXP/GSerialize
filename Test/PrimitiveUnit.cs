@@ -252,28 +252,28 @@ namespace Test
         internal static void UnitTest()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer(mem);
+            var serializer = new S1(mem);
             UnitTest(serializer, mem);
         }
 
         internal static Task UnitTestAsync()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer(mem);
+            var serializer = new S1(mem);
             return UnitTestAsync(serializer, mem);
         }
 
         internal static void UnitTest2()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer2(mem);
+            var serializer = new S2(mem);
             UnitTest(serializer, mem);
         }
 
         internal static Task UnitTest2Async()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer2(mem);
+            var serializer = new S2(mem);
             return UnitTestAsync(serializer, mem);
         }
     }

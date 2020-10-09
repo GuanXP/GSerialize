@@ -105,7 +105,7 @@ namespace GSerialize
         private static List<string> GenerateCodeForType(Type type)
         {
             var code = new List<String>();
-            code.Add($"public class {type.GeneratedClassName2()}");
+            code.Add($"public sealed class {type.GeneratedClassName2()}");
             code.Add("{");
             code.AddRange(GenerateWriteMethod(type));
             code.AddRange(GenerateReadMethod(type));

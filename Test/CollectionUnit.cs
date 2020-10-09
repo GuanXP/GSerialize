@@ -12,7 +12,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using GSerialize;
 
 namespace Test
 {
@@ -52,7 +51,7 @@ namespace Test
 
         public Dictionary<Int32, Int32> Dict4 = new Dictionary<int, int>();
 
-        public static void UnitTest<TSerializer>(
+        private static void UnitTest<TSerializer>(
             TSerializer serializer,
             MemoryStream mem) where TSerializer: ISerializer
         {
@@ -109,7 +108,7 @@ namespace Test
             Console.WriteLine($"{DateTime.Now} {typeof(TSerializer).Name}: end testing collection/enum");
         }
 
-        public static async Task UnitTestAsync<TSerializer>(
+        private static async Task UnitTestAsync<TSerializer>(
             TSerializer serializer,
             MemoryStream mem) where TSerializer: ISerializer
         {
@@ -169,28 +168,28 @@ namespace Test
         internal static void UnitTest()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer(mem);
+            var serializer = new S1(mem);
             UnitTest(serializer, mem);
         }
 
         internal static Task UnitTestAsync()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer(mem);
+            var serializer = new S1(mem);
             return UnitTestAsync(serializer, mem);
         }
 
         internal static void UnitTest2()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer2(mem);
+            var serializer = new S2(mem);
             UnitTest(serializer, mem);
         }
 
         internal static Task UnitTest2Async()
         {
             using var mem = new MemoryStream();
-            var serializer = new Serializer2(mem);
+            var serializer = new S2(mem);
             return UnitTestAsync(serializer, mem);
         }
     }

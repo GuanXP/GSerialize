@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace GSerialize
 {
-    public sealed class Serializer2: ISerializer
+    public sealed class Serializer2
     {
         private static Dictionary<Type, SerialMethods> TypeMethodsMap = new Dictionary<Type, SerialMethods>();
         private static void AddAssembly(Assembly assembly, string generatedAssemblyName)
