@@ -4,7 +4,7 @@ GSerialize is a very fast and easy to use C# binary serializer based on code gen
 
 * Support most of primitive types
 * Support customized serializable class
-* Support Array(1 dimension), List<T>, Dictionary<K,V>
+* Support Array(1 dimension), `List<T>`, Dictionary<K,V>
 * High performance (10 times faster than BinaryFormatter）
 * Target to .NET Standard 2.0
 
@@ -78,8 +78,8 @@ var yourClassInstance = serializer.Deserialize<YourClass>();
 The field/property can be one of following
 * primitive supported types
 * Array
-* `List<`T`>`
-* `Dictionary<`K,V`>`
+* `List<T>`
+* `Dictionary<K,V>`
 * Enum
 * Nullable
 
@@ -146,11 +146,11 @@ Debug.Assert(item2.ReadOnlyProperty == null);
 ```
 
 ## Behavior
-When method serializer.`Serialize<`T`>` called，GSerialize will generate serialization codes for type T if they don't exist in memory.
+When method serializer.`Serialize<T>` called，GSerialize will generate serialization codes for type T if they don't exist in memory.
 
 All other customized serializable types in the same assembly will get their generated serialization codes at same time.
 
-The generating process will take a few seconds, the client code can call Serializer.CacheSerialiablesInAssembly to generate all serialization codes before any serializer.`Serialize<`T`>` calls.
+The generating process will take a few seconds, the client code can call Serializer.CacheSerialiablesInAssembly to generate all serialization codes before any serializer.`Serialize<T>` calls.
 
 
 ## Limitations
