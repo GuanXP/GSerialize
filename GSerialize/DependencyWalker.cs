@@ -13,7 +13,7 @@ using System.Reflection;
 
 namespace GSerialize
 {
-    class DependencyWalker
+    sealed class DependencyWalker
     {
         internal delegate bool TypeFilter(Type type);
 

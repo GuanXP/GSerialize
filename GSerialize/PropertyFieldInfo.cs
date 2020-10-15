@@ -13,7 +13,7 @@ using System.Reflection;
 
 namespace GSerialize
 {
-    internal class PropertyFieldInfo
+    internal sealed class PropertyFieldInfo
     {
         internal Type MemberType;
         internal string MemberName;

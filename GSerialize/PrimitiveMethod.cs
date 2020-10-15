@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace GSerialize
 {    
-    class PrimitiveMethod
+    sealed class PrimitiveMethod
     {
         private static Dictionary<Type, SerialMethods> PrimitiveTypeMethodsMap = new Dictionary<Type, SerialMethods>();
 

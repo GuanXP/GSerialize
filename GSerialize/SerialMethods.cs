@@ -10,7 +10,7 @@ using System.Reflection;
 
 namespace GSerialize
 {
-    internal class SerialMethods
+    internal sealed class SerialMethods
     {
         internal MethodInfo Write;
         internal MethodInfo Read;
