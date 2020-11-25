@@ -4,7 +4,7 @@ GSerialize is a very fast and easy to use C# binary serializer based on code gen
 
 * Support most of primitive types
 * Support customized serializable class
-* Support Array(1 dimension), List<T>, Dictionary<K,V>
+* Support Array(1 dimension), `List<T>`, Dictionary<K,V>
 * High performance (10 times faster than BinaryFormatter）
 * Target to .NET Standard 2.0
 
@@ -78,8 +78,8 @@ var yourClassInstance = serializer.Deserialize<YourClass>();
 The field/property can be one of following
 * primitive supported types
 * Array
-* List<T>
-* Dictionary<K,V>
+* `List<T>`
+* `Dictionary<K,V>`
 * Enum
 * Nullable
 
@@ -117,7 +117,7 @@ catch(Exception)
 {
     excepted = true;
 }
-Debug.Assert(excepted); //Non null field/property shall be assigned an object
+Debug.Assert(excepted); //Non null field/property shall be assigned with an object
 
 item1.RequiredField = "hello";
 item1.FullAccessibleProperty = "property";
@@ -146,18 +146,18 @@ Debug.Assert(item2.ReadOnlyProperty == null);
 ```
 
 ## Behavior
-When method serializer.Serialize<T> called，GSerialize will generate serialization codes for type T if they don't exist in memory.
+When method serializer.`Serialize<T>` called，GSerialize will generate serialization codes for type T if they don't exist in memory.
 
 All other customized serializable types in the same assembly will get their generated serialization codes at same time.
 
-The generating process will take a few seconds, the client code can call Serializer.PrepareForAssembly to generate all serialization codes before any serializer.Serialize<T> calls.
+The generating process will take a few seconds, the client code can call Serializer.CacheSerialiablesInAssembly to generate all serialization codes before any serializer.`Serialize<T>` calls.
 
 
 ## Limitations
-- For best performance, GSerialize.Serializer doesn't check references among the class members, every member will save a copy of its data. The customized class must avoid reference cycle because that will cause a dead loop while serializing. 
+- For the best performance, GSerialize.Serializer doesn't check references among the class members, every member will save a copy of its data. The customized class must avoid reference cycle because that will cause a dead loop while serializing. 
 
 - If you need references checked, please use GSerialize.Serializer2 that will lost a bit of performance but can decrease data size if there are many member references in a serializable object.
 
-- GSerialize is not thread safe, so client shall avoid accessing identical instance of Serializer/Serializer2 from variety threads.
+- GSerialize is not thread safe, so client code shall avoid accessing identical instance of Serializer/Serializer2 from variety threads.
 
 - Customized serializable class must provide a default constructor without parameters.
