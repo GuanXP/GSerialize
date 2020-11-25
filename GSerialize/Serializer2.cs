@@ -28,7 +28,8 @@ namespace GSerialize
             if (firstSerialabeType == null || TypeMethodsMap.ContainsKey(firstSerialabeType)) return;
 
             var mapCopy = new Dictionary<Type, SerialMethods>(TypeMethodsMap);
-            var compiledAssembly = CodeGenerator2.CompileSerialable(
+            var codeGenerator = new CodeGenerator2();
+            var compiledAssembly = codeGenerator.CompileSerialable(
                 serializingTypes, referencedAssemblies, generatedAssemblyName);
             foreach (var t in serializingTypes)
             {

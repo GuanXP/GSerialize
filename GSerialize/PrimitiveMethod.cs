@@ -8,6 +8,7 @@
  
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace GSerialize
 {    
@@ -17,6 +18,14 @@ namespace GSerialize
 
         static PrimitiveMethod()
         {
+            PrimitiveTypeMethodsMap[typeof(Boolean)] = new SerialMethods
+            {
+                Read = typeof(Packer).GetMethod("ReadBool"),
+                Write = typeof(Packer).GetMethod("WriteBool"),
+                ReadAsync = typeof(Packer).GetMethod("ReadBoolAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteBoolAsync"),
+            };
+
             PrimitiveTypeMethodsMap[typeof(Int32)] = new SerialMethods
             {
                 Read = typeof(Packer).GetMethod("ReadInt32"),
@@ -143,6 +152,14 @@ namespace GSerialize
                 Write = typeof(Packer).GetMethod("WriteDecimal"),
                 ReadAsync = typeof(Packer).GetMethod("ReadDecimalAsync"),
                 WriteAsync = typeof(Packer).GetMethod("WriteDecimalAsync"),
+            };
+
+            PrimitiveTypeMethodsMap[typeof(IPEndPoint)] = new SerialMethods
+            {
+                Read = typeof(Packer).GetMethod("ReadIPEndPoint"),
+                Write = typeof(Packer).GetMethod("WriteIPEndPoint"),
+                ReadAsync = typeof(Packer).GetMethod("ReadIPEndPointAsync"),
+                WriteAsync = typeof(Packer).GetMethod("WriteIPEndPointAsync"),
             };
         }
 

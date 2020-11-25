@@ -8,6 +8,7 @@
  
 using System;
 using System.IO;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -423,7 +424,43 @@ namespace GSerialize
             return ByteConverter.ToDecimal(await ReadNBytesAsync(_16BytesBuffer, 16, cancellation));
         }
 
-        private byte[] ReadNBytes(byte[] bytes, int count)
+        public void WriteIPEndPoint(IPEndPoint value)
+        {
+            var addressBytes = value.Address.GetAddressBytes();
+            WriteInt32(addressBytes.Length);
+            _stream.Write(addressBytes, 0, addressBytes.Length);
+            WriteInt32(value.Port);
+        }
+
+        public async Task WriteIPEndPointAsync(IPEndPoint value, CancellationToken cancellation)
+        {
+            var addressBytes = value.Address.GetAddressBytes();
+            await WriteInt32Async(addressBytes.Length, cancellation);
+            await _stream.WriteAsync(addressBytes, 0, addressBytes.Length, cancellation);
+            await WriteInt32Async(value.Port, cancellation);
+        }
+
+        public IPEndPoint ReadIPEndPoint()
+        {
+            var addressLen = ReadInt32();
+            var addressBytes = new byte[addressLen];
+            ReadNBytes(addressBytes, addressLen);
+            var address = new IPAddress(addressBytes);
+            var port = ReadInt32();
+            return new IPEndPoint(address, port);
+        }
+
+        public async Task<IPEndPoint> ReadIPEndPointAsync(CancellationToken cancellation)
+        {
+            var addressLen = await ReadInt32Async(cancellation);
+            var addressBytes = new byte[addressLen];
+            await ReadNBytesAsync(addressBytes, addressLen, cancellation);
+            var address = new IPAddress(addressBytes);
+            var port = await ReadInt32Async(cancellation);
+            return new IPEndPoint(address, port);
+        }
+
+        public byte[] ReadNBytes(byte[] bytes, int count)
         {
             int readBytes = 0;
             while (count > 0)
@@ -436,7 +473,7 @@ namespace GSerialize
             return bytes;
         }
 
-        private async Task<byte[]> ReadNBytesAsync(
+        public async Task<byte[]> ReadNBytesAsync(
             byte[] bytes, int count, 
             CancellationToken cancellation)
         {
@@ -449,6 +486,16 @@ namespace GSerialize
                 count -= n;
             }
             return bytes;
+        }
+
+        public void WriteNBytes(byte[] buffer, int offset, int count)
+        {
+            _stream.Write(buffer, offset, count);
+        }
+
+        public Task WriteNBytesAsync(byte[] buffer, int offset, int count, CancellationToken cancellation)
+        {
+            return _stream.WriteAsync(buffer, offset, count, cancellation);
         }
     }
 }

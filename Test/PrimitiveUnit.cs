@@ -9,6 +9,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 using GSerialize;
 
@@ -133,6 +134,14 @@ namespace Test
             var guid_2 = serializer.Deserialize<Guid>();
             Debug.Assert(guid_1 == guid_2);
 
+            IPEndPoint ep1 = new IPEndPoint(IPAddress.Parse("192.168.1.101"), 3301);
+            mem.Seek(0, SeekOrigin.Begin);
+            serializer.Serialize(ep1);
+            mem.Seek(0, SeekOrigin.Begin);
+            var ep2 = serializer.Deserialize<IPEndPoint>();
+            Debug.Assert(ep2.Equals(ep1));
+
+
             Console.WriteLine($"{DateTime.Now} {typeof(TSerializer).Name}: end testing built-in types");
         }
         
@@ -245,6 +254,13 @@ namespace Test
             mem.Seek(0, SeekOrigin.Begin);
             var guid_2 = await serializer.DeserializeAsync<Guid>();
             Debug.Assert(guid_1 == guid_2);
+
+            IPEndPoint ep1 = new IPEndPoint(IPAddress.Parse("192.168.1.101"), 3301);
+            mem.Seek(0, SeekOrigin.Begin);
+            await serializer.SerializeAsync(ep1);
+            mem.Seek(0, SeekOrigin.Begin);
+            var ep2 = await serializer.DeserializeAsync<IPEndPoint>();
+            Debug.Assert(ep2.Equals(ep1));
 
             Console.WriteLine($"{DateTime.Now} {typeof(TSerializer).Name} async: end testing built-in types");
         }

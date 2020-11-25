@@ -15,12 +15,13 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Runtime.Loader;
+using System.Net;
 
 namespace GSerialize
 {
     sealed class CodeGenerator2
     {
-        static void LoadReferencedAssemblies(Assembly assembly, 
+        void LoadReferencedAssemblies(Assembly assembly, 
             List<MetadataReference> references, List<Assembly> loadedAssemblies)
         {
             if (loadedAssemblies.FirstOrDefault(x => x == assembly) != null) return;
@@ -40,7 +41,7 @@ namespace GSerialize
             writter.WriteLine(code);
         }
 
-        public static Assembly CompileSerialable(
+        public Assembly CompileSerialable(
             List<Type> types, 
             List<Assembly> referencedAssemblies,
             string generatedAssemblyName)
@@ -70,7 +71,7 @@ namespace GSerialize
             return AssemblyLoadContext.Default.LoadFromStream(mem);
         }
 
-        private static string GenerateCode(List<Type> types)
+        private string GenerateCode(List<Type> types)
         {
             var code = new List<String>();
             code.Add("using System;");
@@ -102,7 +103,7 @@ namespace GSerialize
             return builder.ToString();
         }
 
-        private static List<string> GenerateCodeForType(Type type)
+        private List<string> GenerateCodeForType(Type type)
         {
             var code = new List<String>();
             code.Add($"public sealed class {type.GeneratedClassName2()}");
@@ -114,7 +115,7 @@ namespace GSerialize
             return code;
         }        
 
-        static readonly List<StatementGenerator2> s_statementGenerators = new List<StatementGenerator2>
+        readonly List<StatementGenerator2> _statementGenerators = new List<StatementGenerator2>
         {
             new StringStatementGenerator2(),
             new PrimitiveStatementGenerator2(typeof(UInt16), "UInt16"),
@@ -133,6 +134,7 @@ namespace GSerialize
             new PrimitiveStatementGenerator2(typeof(DateTime), "DateTime"),
             new PrimitiveStatementGenerator2(typeof(TimeSpan), "TimeSpan"),
             new PrimitiveStatementGenerator2(typeof(Guid), "Guid"),
+            new PrimitiveStatementGenerator2(typeof(IPEndPoint), "IPEndPoint"),
             new SerializableStatementGenerator2(),
             new ArrayStatementGenerator2(),
             new ListStatementGenerator2(),
@@ -141,7 +143,7 @@ namespace GSerialize
             new NullableStatementGenerator2(),
         };
 
-        private static List<string> GenerateWriteMethod(Type type)
+        private List<string> GenerateWriteMethod(Type type)
         {
             var code = new List<string>();
             code.Add($"public static void Write({type.VisibleClassName()} value,");
@@ -249,9 +251,9 @@ namespace GSerialize
             return code;
         }
 
-        private static List<string> GeneratePropertyWrite(PropertyFieldInfo p)
+        private List<string> GeneratePropertyWrite(PropertyFieldInfo p)
         {
-            foreach(var gen in s_statementGenerators)
+            foreach(var gen in _statementGenerators)
             {
                 if (gen.Matches(p))
                 {
@@ -261,9 +263,9 @@ namespace GSerialize
             throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
         }
 
-        private static List<string> GeneratePropertyAsyncWrite(PropertyFieldInfo p)
+        private List<string> GeneratePropertyAsyncWrite(PropertyFieldInfo p)
         {
-            foreach(var gen in s_statementGenerators)
+            foreach(var gen in _statementGenerators)
             {
                 if (gen.Matches(p))
                 {
@@ -273,7 +275,7 @@ namespace GSerialize
             throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
         }
 
-        private static List<string> GenerateReadMethod(Type type)
+        private List<string> GenerateReadMethod(Type type)
         {
             var code = new List<string>();
             var ReturnClassName = type.VisibleClassName();
@@ -364,9 +366,9 @@ namespace GSerialize
             return code;
         }
 
-        private static List<string> GeneratePropertyRead(PropertyFieldInfo p)
+        private List<string> GeneratePropertyRead(PropertyFieldInfo p)
         {
-            foreach(var gen in s_statementGenerators)
+            foreach(var gen in _statementGenerators)
             {
                 if (gen.Matches(p))
                 {
@@ -376,9 +378,9 @@ namespace GSerialize
             throw new NotSupportedException($"{p.MemberType} of {p.MemberName} is not a supported type");
         }
 
-        private static List<string> GeneratePropertyAsyncRead(PropertyFieldInfo p)
+        private List<string> GeneratePropertyAsyncRead(PropertyFieldInfo p)
         {
-            foreach(var gen in s_statementGenerators)
+            foreach(var gen in _statementGenerators)
             {
                 if (gen.Matches(p))
                 {
@@ -508,26 +510,22 @@ namespace GSerialize
 
         public string ReadingStatement(PropertyFieldInfo p)
         {
-            var itemType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.ReadList<{itemType.VisibleClassName()}>(serializer, cache)";
+            return $"CollectionPacker2.ReadList{p.GenericParams()}(serializer, cache)";
         }
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            var itemType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.ReadListAsync<{itemType.VisibleClassName()}>(serializer, cache, cancellation)";
+            return $"CollectionPacker2.ReadListAsync{p.GenericParams()}(serializer, cache, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
         {
-            var itemType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.WriteList<{itemType.VisibleClassName()}>(value.{p.MemberName}, serializer, cache);";
+            return $"CollectionPacker2.WriteList{p.GenericParams()}(value.{p.MemberName}, serializer, cache);";
         }
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            var itemType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.WriteListAsync<{itemType.VisibleClassName()}>(value.{p.MemberName}, serializer, cache, cancellation);";
+            return $"CollectionPacker2.WriteListAsync{p.GenericParams()}(value.{p.MemberName}, serializer, cache, cancellation);";
         }
     }
 
@@ -542,26 +540,22 @@ namespace GSerialize
 
         public string ReadingStatement(PropertyFieldInfo p)
         {
-            var elementType = p.MemberType.GetElementType();
-            return $"CollectionPacker2.ReadArray<{elementType.VisibleClassName()}>(serializer, cache)";
+            return $"CollectionPacker2.ReadArray{p.GenericParams()}(serializer, cache)";
         }
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            var elementType = p.MemberType.GetElementType();
-            return $"CollectionPacker2.ReadArrayAsync<{elementType.VisibleClassName()}>(serializer, cache, cancellation)";
+            return $"CollectionPacker2.ReadArrayAsync{p.GenericParams()}(serializer, cache, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
         {
-            var elementType = p.MemberType.GetElementType();
-            return $"CollectionPacker2.WriteArray<{elementType.VisibleClassName()}>(value.{p.MemberName}, serializer, cache);";
+            return $"CollectionPacker2.WriteArray{p.GenericParams()}(value.{p.MemberName}, serializer, cache);";
         }
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            var elementType = p.MemberType.GetElementType();
-            return $"CollectionPacker2.WriteArrayAsync<{elementType.VisibleClassName()}>(value.{p.MemberName}, serializer, cache, cancellation);";
+            return $"CollectionPacker2.WriteArrayAsync{p.GenericParams()}(value.{p.MemberName}, serializer, cache, cancellation);";
         }
     }
 
@@ -576,30 +570,22 @@ namespace GSerialize
 
         public string ReadingStatement(PropertyFieldInfo p)
         {
-            var keyType = p.MemberType.GetGenericArguments()[0];
-            var valueType = p.MemberType.GetGenericArguments()[1];
-            return $"CollectionPacker2.ReadDict<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(serializer, cache)";
+            return $"CollectionPacker2.ReadDict{p.GenericParams()}(serializer, cache)";
         }
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            var keyType = p.MemberType.GetGenericArguments()[0];
-            var valueType = p.MemberType.GetGenericArguments()[1];
-            return $"CollectionPacker2.ReadDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(serializer, cache, cancellation)";
+            return $"CollectionPacker2.ReadDictAsync{p.GenericParams()}(serializer, cache, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
         {
-            var keyType = p.MemberType.GetGenericArguments()[0];
-            var valueType = p.MemberType.GetGenericArguments()[1];
-            return $"CollectionPacker2.WriteDict<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer, cache);";
+            return $"CollectionPacker2.WriteDict{p.GenericParams()}(value.{p.MemberName}, serializer, cache);";
         }
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            var keyType = p.MemberType.GetGenericArguments()[0];
-            var valueType = p.MemberType.GetGenericArguments()[1];
-            return $"CollectionPacker2.WriteDictAsync<{keyType.VisibleClassName()},{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer, cache, cancellation);";
+            return $"CollectionPacker2.WriteDictAsync{p.GenericParams()}(value.{p.MemberName}, serializer, cache, cancellation);";
         }
     }
 
@@ -644,26 +630,22 @@ namespace GSerialize
 
         public string ReadingStatement(PropertyFieldInfo p)
         {
-            var valueType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.ReadNullable<{valueType.VisibleClassName()}>(serializer)";
+            return $"CollectionPacker2.ReadNullable{p.GenericParams()}(serializer)";
         }
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            var valueType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.ReadNullableAsync<{valueType.VisibleClassName()}>(serializer, cancellation)";
+            return $"CollectionPacker2.ReadNullableAsync{p.GenericParams()}(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
         {
-            var valueType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.WriteNullable<{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+            return $"CollectionPacker2.WriteNullable{p.GenericParams()}(value.{p.MemberName}, serializer);";
         }
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            var valueType = p.MemberType.GetGenericArguments()[0];
-            return $"CollectionPacker2.WriteNullableAsync<{valueType.VisibleClassName()}>(value.{p.MemberName}, serializer, cancellation);";
+            return $"CollectionPacker2.WriteNullableAsync{p.GenericParams()}(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 }

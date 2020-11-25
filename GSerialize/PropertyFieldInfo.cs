@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace GSerialize
 {
@@ -50,6 +51,31 @@ namespace GSerialize
             }
             result.Sort((x,y)=>string.Compare(x.MemberName, y.MemberName));
             return result;
-        }        
+        } 
+        
+        internal string GenericParams()
+        {
+            var sb = new StringBuilder("<");
+            var first = true;
+            foreach(var p in MemberType.GetGenericArguments())
+            {
+                if (first)
+                {
+                    first = false;
+                    sb.Append(p.VisibleClassName());
+                }
+                else
+                {
+                    sb.Append(",");
+                    sb.Append(p.VisibleClassName());
+                }
+            }
+            if (first && MemberType.IsArray && MemberType.HasElementType)
+            {
+                sb.Append(MemberType.GetElementType().VisibleClassName());
+            }
+            sb.Append(">");
+            return sb.ToString();
+        }
     }
 }
