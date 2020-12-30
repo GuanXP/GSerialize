@@ -1,4 +1,4 @@
-# About GSerialize
+# About GSerialize & XPRPC
 
 GSerialize is a very fast and easy to use C# binary serializer based on code generating.
 
@@ -8,7 +8,13 @@ GSerialize is a very fast and easy to use C# binary serializer based on code gen
 * High performance (10 times faster than BinaryFormatter）
 * Target to .NET Standard 2.0
 
-## Usage
+XPRPC is a RPC framework based on GSerialize. It supply following features
+* basic security with configured roles
+* local machine or TCP network deployment
+* event transferring through network
+* bi-direction calls between client and server
+
+## GSerialize usage
 ```C#
 var serializer = Serializer(stream); //Construct a serializer that will store data into a stream
 //To serialize an object
@@ -145,7 +151,7 @@ Debug.Assert(item2.PrivateField == null);
 Debug.Assert(item2.ReadOnlyProperty == null);
 ```
 
-## Behavior
+### GSerialize Behavior
 When method serializer.`Serialize<T>` called，GSerialize will generate serialization codes for type T if they don't exist in memory.
 
 All other customized serializable types in the same assembly will get their generated serialization codes at same time.
@@ -153,7 +159,7 @@ All other customized serializable types in the same assembly will get their gene
 The generating process will take a few seconds, the client code can call Serializer.CacheSerialiablesInAssembly to generate all serialization codes before any serializer.`Serialize<T>` calls.
 
 
-## Limitations
+### GSerialize Limitations
 - For the best performance, GSerialize.Serializer doesn't check references among the class members, every member will save a copy of its data. The customized class must avoid reference cycle because that will cause a dead loop while serializing. 
 
 - If you need references checked, please use GSerialize.Serializer2 that will lost a bit of performance but can decrease data size if there are many member references in a serializable object.
@@ -161,3 +167,70 @@ The generating process will take a few seconds, the client code can call Seriali
 - GSerialize is not thread safe, so client code shall avoid accessing identical instance of Serializer/Serializer2 from variety threads.
 
 - Customized serializable class must provide a default constructor without parameters.
+
+## XPRPC usage
+
+code of server site to publish services
+``` C#
+// deploy ServiceManager
+var logger = BuilderLogger();
+var descManager = new ServiceDescriptor
+{
+    Name = "service_manager",
+    Description = "manager of services",
+    ServiceHost = "localhost",
+    ServicePort = 3324,
+    AccessToken = "AnyClient"
+};
+using var managerRunner = TcpManagerRunner.Instance;
+managerRunner.Logger = logger;
+var config = AccessConfig.FromJson(ManagerConfigJson);
+managerRunner.Config(config);
+managerRunner.Start(descManager, sslCertificate: null);
+
+// deploy a service
+var loggerDescriptor = new ServiceDescriptor
+{
+    Name = "logger",
+    Description = "logging service",
+    ServiceHost = "localhost",
+    ServicePort = 3325,
+};
+using var loggerRunner = new TcpServiceRunner<ILogger>(
+    service: logger,                 
+    descriptor: loggerDescriptor, 
+    holdService: false,
+    logger: logger, 
+    sslCertificate: null);
+loggerRunner.Start(descManager, clientID: "logger_provider",secretKey: "Dx90et54");
+
+// deploy another service
+var echoDescriptor = new ServiceDescriptor
+{
+    Name = "echo",
+    Description = "demo service",
+    //ServiceHost = "localhost",  //if no ServiceHost, the default IP will be used
+    ServicePort = 0, //can be any port
+};
+var echoService = new EchoImpl();
+using var echoRunner = new TcpServiceRunner<IEcho2>(
+    service: echoService,                  
+    descriptor: echoDescriptor, 
+    holdService: true,
+    logger: logger,
+    sslCertificate: null);
+echoRunner.Start(descManager, clientID: "echo_provider",secretKey: "F*ooE3");
+```
+
+code of client to use the remote services
+```C#
+//Construct an resolver
+using var resolver = new TcpServiceResolver(descManager, clientID: "logger_client", secretKey: "02384Je5");
+
+// get a service proxy
+var echoClient = resolver.GetService<IEcho2>("echo");
+
+//call methods of the proxy
+Console.WriteLine(echoClient.SayHello("World!"));
+Console.WriteLine(echoClient.SayHi("XP!")); 
+```

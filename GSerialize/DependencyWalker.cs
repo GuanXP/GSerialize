@@ -13,11 +13,11 @@ using System.Reflection;
 
 namespace GSerialize
 {
-    sealed class DependencyWalker
+    public sealed class DependencyWalker
     {
-        internal delegate bool TypeFilter(Type type);
+        public delegate bool TypeFilter(Type type);
 
-        internal static List<Type> FindType(Assembly assembly, TypeFilter filter)
+        public static List<Type> FindType(Assembly assembly, TypeFilter filter)
         {
             var set = new HashSet<Assembly>();
             GetDepencyAssemblies(assembly, set);
@@ -25,14 +25,24 @@ namespace GSerialize
             return CollectSatisfiedType(referencedAssemblies, filter);
         }
 
-        internal static List<Assembly> GetReferencedAssemblies(Assembly assembly)
+        public static List<Assembly> GetReferencedAssemblies(Assembly assembly)
         {
             var set = new HashSet<Assembly>();
             GetDepencyAssemblies(assembly, set);
             return new List<Assembly>(set.ToList());
         }
 
-        private static void GetDepencyAssemblies(Assembly assembly, HashSet<Assembly> assemblies)
+        public static List<Assembly> GetReferencedAssemblies(Assembly[] assemblies)
+        {
+            var set = new HashSet<Assembly>();
+            foreach(var assembly in assemblies)
+            {
+                GetDepencyAssemblies(assembly, set);
+            }
+            return new List<Assembly>(set.ToList());
+        }
+
+        public static void GetDepencyAssemblies(Assembly assembly, HashSet<Assembly> assemblies)
         {
             if (!assemblies.Contains(assembly))
             {
@@ -44,7 +54,7 @@ namespace GSerialize
             }
         }
 
-        internal static List<Type> CollectSatisfiedType(List<Assembly> assemblies, TypeFilter filter)
+        public static List<Type> CollectSatisfiedType(List<Assembly> assemblies, TypeFilter filter)
         {
             var types = new List<Type>();
             foreach (var a in assemblies)
@@ -56,10 +66,10 @@ namespace GSerialize
 
         private static List<Type> SatisfiedTypeInAssembly(Assembly a, TypeFilter filter)
         {
-            var serialzableTypes = from t in a.DefinedTypes 
+            var filteredTypes = from t in a.DefinedTypes 
                 where filter(t)
                 select t;
-            return new List<Type>(serialzableTypes);
+            return new List<Type>(filteredTypes);
         }
     }
 }

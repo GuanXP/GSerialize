@@ -36,7 +36,7 @@ namespace GSerialize
         internal static string VisibleClassName(this Type type)
         {
             if (type.Name == "List`1")
-            {
+            {                
                 var elementType = type.GetGenericArguments()[0];
                 return $"List<{elementType.VisibleClassName()}>";
             }

@@ -481,7 +481,12 @@ namespace GSerialize
             while (count > 0)
             {
                 var n = await _stream.ReadAsync(bytes, readBytes, count, cancellation);
-                if (n == 0) throw new EndOfStreamException();
+                if (cancellation.IsCancellationRequested) throw new OperationCanceledException("reading canceled");
+                if (n == 0)
+                {
+                    throw new EndOfStreamException();
+                }
+                
                 readBytes += n;
                 count -= n;
             }

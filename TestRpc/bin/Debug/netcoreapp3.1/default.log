@@ -1,0 +1,222 @@
+2020/12/10 17:02:37 I service_manager:Service listening
+2020/12/10 17:02:37 I logger:Service listening
+2020/12/10 17:02:51 I echo:Service listening
+2020/12/10 17:02:58 I Tcp Test:remote log message.
+2020/12/16 14:35:42 I service_manager:Service listening
+2020/12/16 14:35:42 I logger:Service listening
+2020/12/16 14:35:54 I echo:Service listening
+2020/12/16 14:36:00 I Tcp Test:remote log message.
+2020/12/16 16:05:19 I service_manager:Service listening
+2020/12/16 16:05:19 I logger:Service listening
+2020/12/16 16:09:52 I service_manager:Service listening
+2020/12/16 16:09:52 I logger:Service listening
+2020/12/16 16:11:08 I service_manager:Service listening
+2020/12/16 16:11:08 I logger:Service listening
+2020/12/16 16:12:23 I service_manager:Service listening
+2020/12/16 16:12:23 I logger:Service listening
+2020/12/16 16:12:32 I echo:Service listening
+2020/12/16 16:12:39 I Tcp Test:remote log message.
+2020/12/16 16:17:55 I service_manager:Service listening
+2020/12/16 16:17:55 I logger:Service listening
+2020/12/16 16:18:04 I echo:Service listening
+2020/12/16 16:18:11 I Tcp Test:remote log message.
+2020/12/16 16:22:52 I service_manager:Service listening
+2020/12/16 16:22:53 I logger:Service listening
+2020/12/16 16:23:02 I echo:Service listening
+2020/12/16 16:23:09 I Tcp Test:remote log message.
+2020/12/16 16:27:23 I service_manager:Service listening
+2020/12/16 16:27:23 I logger:Service listening
+2020/12/16 16:28:42 I echo:Service listening
+2020/12/16 16:28:48 I Tcp Test:remote log message.
+2020/12/16 16:34:34 I service_manager:Service listening
+2020/12/16 16:34:34 I logger:Service listening
+2020/12/16 16:34:44 I echo:Service listening
+2020/12/16 16:34:51 I Tcp Test:remote log message.
+2020/12/16 16:39:46 I service_manager:Service listening
+2020/12/16 16:39:47 I logger:Service listening
+2020/12/16 16:39:56 I echo:Service listening
+2020/12/16 16:40:03 I Tcp Test:remote log message.
+2020/12/16 16:49:23 I service_manager:Service listening
+2020/12/16 16:49:23 I logger:Service listening
+2020/12/16 16:49:33 I echo:Service listening
+2020/12/16 16:49:39 I Tcp Test:remote log message.
+2020/12/16 17:10:29 I service_manager:Service listening
+2020/12/16 17:10:29 I logger:Service listening
+2020/12/16 17:10:40 I echo:Service listening
+2020/12/16 17:10:47 I Tcp Test:remote log message.
+2020/12/16 17:15:22 I service_manager:Service listening
+2020/12/16 17:15:22 I logger:Service listening
+2020/12/16 17:15:32 I echo:Service listening
+2020/12/16 17:15:39 I Tcp Test:remote log message.
+2020/12/16 17:20:10 I service_manager:Service listening
+2020/12/16 17:20:11 I logger:Service listening
+2020/12/16 17:20:21 I echo:Service listening
+2020/12/16 17:20:28 I Tcp Test:remote log message.
+2020/12/16 17:23:10 I service_manager:Service listening
+2020/12/16 17:23:10 I logger:Service listening
+2020/12/16 17:23:24 I echo:Service listening
+2020/12/16 17:23:31 I Tcp Test:remote log message.
+2020/12/16 17:34:21 I service_manager:Service listening
+2020/12/16 17:34:21 I logger:Service listening
+2020/12/16 17:34:48 I echo:Service listening
+2020/12/16 17:34:55 I Tcp Test:remote log message.
+2020/12/16 17:37:16 I service_manager:Service listening
+2020/12/16 17:37:16 I logger:Service listening
+2020/12/16 17:37:26 I echo:Service listening
+2020/12/16 17:37:33 I Tcp Test:remote log message.
+2020/12/16 17:42:27 I service_manager:Service listening
+2020/12/16 17:42:28 I logger:Service listening
+2020/12/16 17:42:38 I echo:Service listening
+2020/12/16 17:42:45 I Tcp Test:remote log message.
+2020/12/16 17:46:03 I service_manager:Service listening
+2020/12/16 17:46:04 I logger:Service listening
+2020/12/16 17:46:14 I echo:Service listening
+2020/12/16 17:46:21 I Tcp Test:remote log message.
+2020/12/16 17:48:22 I service_manager:Service listening
+2020/12/16 17:48:23 I logger:Service listening
+2020/12/16 17:48:32 I echo:Service listening
+2020/12/16 17:48:39 I Tcp Test:remote log message.
+2020/12/29 13:37:58 I service_manager:Service listening
+2020/12/29 13:37:59 I logger:Service listening
+2020/12/29 13:38:44 I service_manager:Service listening
+2020/12/29 13:38:45 I logger:Service listening
+2020/12/29 13:40:15 I service_manager:Service listening
+2020/12/29 13:40:15 I logger:Service listening
+2020/12/29 13:43:37 I service_manager:Service listening
+2020/12/29 13:43:38 I logger:Service listening
+2020/12/29 13:45:48 I service_manager:Service listening
+2020/12/29 13:45:48 I logger:Service listening
+2020/12/29 13:48:09 I service_manager:Service listening
+2020/12/29 13:48:09 I logger:Service listening
+2020/12/29 13:49:31 I service_manager:Service listening
+2020/12/29 13:49:31 I logger:Service listening
+2020/12/29 13:50:46 I service_manager:Service listening
+2020/12/29 13:50:47 I logger:Service listening
+2020/12/29 14:04:17 I service_manager:Service listening
+2020/12/29 14:04:18 I logger:Service listening
+2020/12/29 14:21:13 I service_manager:Service listening
+2020/12/29 14:21:14 I logger:Service listening
+2020/12/29 14:26:47 I service_manager:Service listening
+2020/12/29 14:26:47 I logger:Service listening
+2020/12/29 14:29:21 I service_manager:Service listening
+2020/12/29 14:29:21 I logger:Service listening
+2020/12/29 14:32:44 I service_manager:Service listening
+2020/12/29 14:32:44 I logger:Service listening
+2020/12/29 14:34:40 I service_manager:Service listening
+2020/12/29 14:34:40 I logger:Service listening
+2020/12/29 14:36:35 I service_manager:Service listening
+2020/12/29 14:36:35 I logger:Service listening
+2020/12/29 14:39:30 I service_manager:Service listening
+2020/12/29 14:39:30 I logger:Service listening
+2020/12/29 14:43:13 I service_manager:Service listening
+2020/12/29 14:43:13 I logger:Service listening
+2020/12/29 14:43:43 I echo:Service listening
+2020/12/29 14:43:50 I Tcp Test:remote log message.
+2020/12/29 14:46:03 I service_manager:Service listening
+2020/12/29 14:46:04 I logger:Service listening
+2020/12/29 14:46:14 I echo:Service listening
+2020/12/29 14:46:20 I Tcp Test:remote log message.
+2020/12/29 14:48:26 I service_manager:Service listening
+2020/12/29 14:48:26 I logger:Service listening
+2020/12/29 14:48:36 I echo:Service listening
+2020/12/29 14:48:43 I Tcp Test:remote log message.
+2020/12/29 14:54:22 I service_manager:Service listening
+2020/12/29 14:54:22 I logger:Service listening
+2020/12/29 14:54:32 I echo:Service listening
+2020/12/29 14:54:39 I Tcp Test:remote log message.
+2020/12/29 14:57:54 I service_manager:Service listening
+2020/12/29 14:57:55 I logger:Service listening
+2020/12/29 14:58:04 I echo:Service listening
+2020/12/29 14:58:11 I Tcp Test:remote log message.
+2020/12/29 15:10:53 I service_manager:Service listening
+2020/12/29 15:10:53 I logger:Service listening
+2020/12/29 15:11:03 I echo:Service listening
+2020/12/29 15:11:10 I Tcp Test:remote log message.
+2020/12/29 15:13:17 I service_manager:Service listening
+2020/12/29 15:13:17 I logger:Service listening
+2020/12/29 15:13:26 I echo:Service listening
+2020/12/29 15:13:33 I Tcp Test:remote log message.
+2020/12/29 15:57:47 I service_manager:Service listening
+2020/12/29 15:57:47 I logger:Service listening
+2020/12/29 15:57:56 I echo:Service listening
+2020/12/29 15:58:03 I Tcp Test:remote log message.
+2020/12/29 16:02:53 I service_manager:Service listening
+2020/12/29 16:02:54 I logger:Service listening
+2020/12/29 16:03:03 I echo:Service listening
+2020/12/29 16:03:10 I Tcp Test:remote log message.
+2020/12/29 16:04:44 I service_manager:Service listening
+2020/12/29 16:04:44 I logger:Service listening
+2020/12/29 16:04:54 I echo:Service listening
+2020/12/29 16:05:00 I Tcp Test:remote log message.
+2020/12/29 16:05:44 I service_manager:Service listening
+2020/12/29 16:05:44 I logger:Service listening
+2020/12/29 16:05:54 I echo:Service listening
+2020/12/29 16:06:01 I Tcp Test:remote log message.
+2020/12/29 16:07:43 I service_manager:Service listening
+2020/12/29 16:07:43 I logger:Service listening
+2020/12/29 16:07:52 I echo:Service listening
+2020/12/29 16:07:59 I Tcp Test:remote log message.
+2020/12/29 16:08:31 I service_manager:Service listening
+2020/12/29 16:08:31 I logger:Service listening
+2020/12/29 16:08:40 I echo:Service listening
+2020/12/29 16:08:47 I Tcp Test:remote log message.
+2020/12/29 16:09:31 I service_manager:Service listening
+2020/12/29 16:09:31 I logger:Service listening
+2020/12/29 16:09:42 I echo:Service listening
+2020/12/29 16:09:48 I Tcp Test:remote log message.
+2020/12/29 16:10:32 I service_manager:Service listening
+2020/12/29 16:10:32 I logger:Service listening
+2020/12/29 16:10:41 I echo:Service listening
+2020/12/29 16:10:48 I Tcp Test:remote log message.
+2020/12/29 16:11:10 I service_manager:Service listening
+2020/12/29 16:11:10 I logger:Service listening
+2020/12/29 16:11:20 I echo:Service listening
+2020/12/29 16:11:26 I Tcp Test:remote log message.
+2020/12/29 16:14:42 I service_manager:Service listening
+2020/12/29 16:14:42 I logger:Service listening
+2020/12/29 16:14:52 I echo:Service listening
+2020/12/29 16:14:59 I Tcp Test:remote log message.
+2020/12/29 16:17:37 I service_manager:Service listening
+2020/12/29 16:17:37 I logger:Service listening
+2020/12/29 16:17:53 I echo:Service listening
+2020/12/29 16:18:00 I Tcp Test:remote log message.
+2020/12/29 16:20:08 I service_manager:Service listening
+2020/12/29 16:20:09 I logger:Service listening
+2020/12/29 16:20:19 I echo:Service listening
+2020/12/29 16:20:25 I Tcp Test:remote log message.
+2020/12/29 16:38:13 I service_manager:Service listening
+2020/12/29 16:38:13 I logger:Service listening
+2020/12/29 16:38:23 I echo:Service listening
+2020/12/29 16:38:30 I Tcp Test:remote log message.
+2020/12/29 16:51:07 I service_manager:Service listening
+2020/12/29 16:51:07 I logger:Service listening
+2020/12/29 16:51:17 I echo:Service listening
+2020/12/29 16:51:23 I Tcp Test:remote log message.
+2020/12/30 11:54:05 I service_manager:Service listening
+2020/12/30 11:54:05 I logger:Service listening
+2020/12/30 11:54:15 I echo:Service listening
+2020/12/30 11:54:21 I Tcp Test:remote log message.
+2020/12/30 12:05:24 I service_manager:Service listening
+2020/12/30 12:05:24 I logger:Service listening
+2020/12/30 12:05:34 I echo:Service listening
+2020/12/30 12:05:41 I Tcp Test:remote log message.
+2020/12/30 13:37:32 I service_manager:Service listening
+2020/12/30 13:37:32 I logger:Service listening
+2020/12/30 13:37:42 I echo:Service listening
+2020/12/30 13:37:49 I Tcp Test:remote log message.
+2020/12/30 13:45:53 I service_manager:Service listening
+2020/12/30 13:45:53 I logger:Service listening
+2020/12/30 13:46:03 I echo:Service listening
+2020/12/30 13:46:09 I Tcp Test:remote log message.
+2020/12/30 14:08:18 I service_manager:Service listening
+2020/12/30 14:08:19 I logger:Service listening
+2020/12/30 14:08:28 I echo:Service listening
+2020/12/30 14:08:35 I Tcp Test:remote log message.
+2020/12/30 14:13:12 I service_manager:Service listening
+2020/12/30 14:13:12 I logger:Service listening
+2020/12/30 14:13:22 I echo:Service listening
+2020/12/30 14:13:29 I Tcp Test:remote log message.
+2020/12/30 14:16:12 I service_manager:Service listening
+2020/12/30 14:16:12 I logger:Service listening
+2020/12/30 14:16:21 I echo:Service listening
+2020/12/30 14:16:27 I Tcp Test:remote log message.
