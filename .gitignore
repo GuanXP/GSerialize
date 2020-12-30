@@ -1,5 +1,15 @@
+﻿################################################################################
+# 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
+################################################################################
+.vs/
+.vscode/
 GSerialize/bin/
 GSerialize/obj/
-Test/bin/
-Test/obj/
+TestSerializer/bin/
+TestSerializer/obj/
+XPRPC/obj/
+XPRPC/bin/
 .DS_Store
+*.log
+TestRpc/bin/
+TestRpc/obj/
