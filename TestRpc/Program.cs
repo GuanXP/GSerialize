@@ -44,7 +44,8 @@ namespace TestRpc
                 Name = "logger",
                 Description = "logging service",
             };
-            using var loggerRunner = new LocalServiceRunner<ILogger>(BuilderLogger(), descLogger, true);
+            using var loggerService = BuilderLogger();
+            using var loggerRunner = new LocalServiceRunner<ILogger>(loggerService, descLogger);
             loggerRunner.Start(descManager, clientID: "logger_provider", secretKey: "Dx90et54");
 
             var echoDescriptor = new ServiceDescriptor
@@ -52,8 +53,9 @@ namespace TestRpc
                 Name = "echo",
                 Description = "demo service",
             };
+            
             var echoService = new EchoImpl();
-            using var echoRunner = new LocalServiceRunner<IEcho2>(echoService, echoDescriptor, true);
+            using var echoRunner = new LocalServiceRunner<IEcho2>(echoService, echoDescriptor);
             echoRunner.Start(descManager, clientID: "echo_provider",secretKey: "F*ooE3");
 
             //client site
@@ -64,15 +66,23 @@ namespace TestRpc
                 Console.WriteLine(desc.ToString());
             }
 
-            using var loggerClient = resolver.GetService<ILogger>("logger");
+            var loggerClient = resolver.GetService<ILogger>("logger");
             loggerClient.Debug(tag: "local_test", message: "Hello XPRPC");       
 
-            using var echoClient = resolver.GetService<IEcho2>("echo");
+            var echoClient = resolver.GetService<IEcho2>("echo");
             Console.WriteLine(echoClient.SayHello("World!"));
+            Console.WriteLine(echoClient.SayHi("XP!"));
+          
             echoClient.GreetingEvent += (sender, args) => {Console.WriteLine(args.Greeting);};
             echoService.Greeting("Hello clients!");
             echoClient.Greeting2Event += OnEchoGreeting;
             echoService.Greeting("Hello echo!");
+
+            echoClient.SetCallback(new Callback());
+            echoService.GreetingAsync("Hello echo async!").Wait();
+            echoClient.SetCallback(null);
+            echoService.GreetingAsync("Hello echo async agin!").Wait();
+
             echoClient.Greeting2Event -= OnEchoGreeting;
             echoService.Greeting("Hello echo two!");     
         }
@@ -108,7 +118,6 @@ namespace TestRpc
             using var loggerRunner = new TcpServiceRunner<ILogger>(
                 service: logger,                 
                 descriptor: loggerDescriptor, 
-                holdService: false,
                 logger: logger, 
                 sslCertificate: null);
             loggerRunner.Start(descManager, clientID: "logger_provider",secretKey: "Dx90et54");
@@ -125,7 +134,6 @@ namespace TestRpc
             using var echoRunner = new TcpServiceRunner<IEcho2>(
                 service: echoService,                  
                 descriptor: echoDescriptor, 
-                holdService: true,
                 logger: logger,
                 sslCertificate: null);
             echoRunner.Start(descManager, clientID: "echo_provider",secretKey: "F*ooE3");            
@@ -202,7 +210,7 @@ namespace TestRpc
     {
         public string Greeting {get; set;}
     }
-    public interface IEcho: IDisposable
+    public interface IEcho
     {
         string SayHello(string message);
         Task<string> SayHelloAsync(string message);
@@ -230,9 +238,6 @@ namespace TestRpc
         public event EventHandler<EchoEventArgs> Greeting2Event;
         private IEchoListener _listener;
 
-        public void Dispose()
-        {            
-        }
 
         public string SayHello(string message)
         {

@@ -15,7 +15,7 @@ namespace XPRPC.Client
     public abstract class ServiceResolver : IDisposable
     {
         protected abstract IServiceManager ResolveServiceManager(ServiceDescriptor descriptor);
-        protected abstract TService ResolveService<TService>(ServiceDescriptor descriptor) where TService: IDisposable;
+        protected abstract TService ResolveService<TService>(ServiceDescriptor descriptor);
 
         protected ServiceResolver(ServiceDescriptor serviceManagerDesc, string clientID, string secretKey)
         {
@@ -31,9 +31,9 @@ namespace XPRPC.Client
             _serviceManager = manager;
         }
 
-        public TService GetService<TService>(string name) where TService: IDisposable
+        public TService GetService<TService>(string name)
         {
-            IDisposable service = null;
+            Object service = null;
             lock(_lock)
             {
                 _indexedServices.TryGetValue(name, out service);
@@ -47,27 +47,25 @@ namespace XPRPC.Client
                     _indexedServices.TryGetValue(name, out service);
                     if (service == null && newService != null)
                     {
-                        service?.Dispose();
                         _indexedServices[name] = newService;
-                        _services.Insert(0, newService);  //place the newest service at head
                         return newService;
                     }
                 }
-                newService?.Dispose();                
             }
             return (TService)service;
         }
 
-        protected abstract bool ServiceIsActive(IDisposable service);
+        protected abstract bool ServiceIsActive(Object service);
 
         private IServiceManager _serviceManager;
         public IServiceManager ServiceManager => _serviceManager;
-        private Dictionary<string, IDisposable> _indexedServices = new Dictionary<string, IDisposable>();
-        private List<IDisposable> _services = new List<IDisposable>();
-        private object _lock = new object();
+        private Dictionary<string, Object> _indexedServices = new Dictionary<string, Object>();
+        private readonly object _lock = new object();
 
         protected string ClientID{get; private set;}
         protected string SecretKey{get; private set;}
+
+        #region IDisposable
 
         private bool disposedValue;
 
@@ -77,28 +75,11 @@ namespace XPRPC.Client
             {
                 if (disposing)
                 {
-                    DisposeServices();
-                    _serviceManager.Dispose();                    
-                }
+                    _serviceManager?.Dispose();
                 _serviceManager = null;
-                disposedValue = true;
-            }
         }
 
-        private void DisposeServices()
-        {
-            var services = new List<IDisposable>();
-            lock(_lock)
-            {                
-                services.AddRange(_services);                
-                _services.Clear();
-                _indexedServices.Clear();
-            }
-
-            //Be careful about the disposing sequence that are inverse to creating order
-            foreach(var service in services)
-            {
-                service.Dispose();
+                disposedValue = true;
             }
         }
 
@@ -107,5 +88,7 @@ namespace XPRPC.Client
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
+        #endregion IDisposable
     }
 }

@@ -14,16 +14,14 @@ namespace XPRPC.Server
     /// Publisher for local services
     /// </summary>
     public class LocalServiceRunner<TService> : ServiceRunner<TService>
-        where TService : IDisposable
     {
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="service">the concrete service object</param>
         /// <param name="descriptor">service descriptor</param>        
-        /// <param name="holdService">if ServiceRunner need hold the service object and dispose it when disposing</param>
-        public LocalServiceRunner(TService service, ServiceDescriptor descriptor, bool holdService)
-        : base(service, descriptor, holdService)
+        public LocalServiceRunner(TService service, ServiceDescriptor descriptor)
+        : base(service, descriptor)
         {
             LocalManagerRunner.Instance.AddService(descriptor.Name, service);
         }

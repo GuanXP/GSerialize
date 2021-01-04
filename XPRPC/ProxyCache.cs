@@ -11,9 +11,11 @@ using System.Collections.Generic;
 
 namespace XPRPC
 {
-    class ProxyCache
+    class ProxyCache : IDisposable
     {
         private Dictionary<Int16, ProxyItem> _items = new Dictionary<Int16, ProxyItem>();
+        private LinkedList<ProxyItem> _orderedItems = new LinkedList<ProxyItem>();
+        private bool disposedValue;
 
         public TService CacheProxy<TService>(Int16 remoteObjectID, IDataSender sender)
         {
@@ -23,6 +25,7 @@ namespace XPRPC
                 {
                     item = ProxyItem.Build<TService>(remoteObjectID, sender);
                     _items.Add(item.RemoteObjectID, item);
+                    _orderedItems.AddFirst(item);
                 }
                 return (TService)item.Proxy;
             }            
@@ -40,6 +43,35 @@ namespace XPRPC
         public void HandleEvent(BlockObjectEvent block)
         {
             FindByID(block.ObjectID)?.Proxy.FireEvent(block.EventID, block.DataStream);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    DisposeAll();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        private void DisposeAll()
+        {
+            foreach(var item in _orderedItems)
+            {
+                item.Dispose();
+            }
+            _orderedItems.Clear();
+            _items.Clear();
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

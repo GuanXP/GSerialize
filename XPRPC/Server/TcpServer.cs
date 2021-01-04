@@ -20,23 +20,21 @@ using XPRPC.Service.Logger;
 
 namespace XPRPC.Server
 {
-    class SessionRecord<TService> where TService : IDisposable
+    class SessionRecord<TService>
     {
         public TcpSession<TService> Session;
         public readonly DateTime DeactivateTime = DateTime.Now;
     }
     public class TcpServer<TService> : IDisposable
-    where TService: IDisposable
     {
         private TcpListener _listener;
-        private bool disposedValue;
         private readonly ILogger _logger;
         private readonly ServiceDescriptor _descriptor;
-        private readonly ManualResetEvent _eventDone = new ManualResetEvent(false);
-        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly ManualResetEvent _eventDone = new ManualResetEvent(true);
         private readonly X509Certificate _sslCertificate;
         private readonly TService _service;
         private readonly Dictionary<string, SessionRecord<TService>> _inactiveSessions = new Dictionary<string, SessionRecord<TService>>();
+        private bool _quit = false;
 
         public TcpServer(TService service, ServiceDescriptor descriptor, ILogger logger, X509Certificate sslCertificate)
         {
@@ -58,10 +56,11 @@ namespace XPRPC.Server
         }
 
         private async void Run()
-        {                    
+        {
+            _eventDone.Reset();
             try
             {
-                while(!_cancellationTokenSource.IsCancellationRequested)
+                while(!_quit)
                 {                   
                     var client = await _listener.AcceptTcpClientAsync();
                     _ = Task.Run(async () => await HandleClient(client));
@@ -69,7 +68,7 @@ namespace XPRPC.Server
             }
             catch(Exception ex)
             {
-                if (!_cancellationTokenSource.IsCancellationRequested)
+                if (!_quit)
                 {
                     _logger.Exception(tag:_descriptor.Name, ex);
                 }
@@ -92,8 +91,7 @@ namespace XPRPC.Server
             }
             catch(Exception ex)
             {
-                if (!_cancellationTokenSource.IsCancellationRequested &&
-                 !(ex is IOException))
+                if (!(ex is IOException))
                 {
                     _logger.Exception(tag:_descriptor.Name, ex);
                 }
@@ -103,7 +101,7 @@ namespace XPRPC.Server
 
         private void CacheInactiveSession(TcpSession<TService> session, string sessionKey)
         {
-            if (_cancellationTokenSource.IsCancellationRequested)
+            if (_quit)
             {
                 session.Dispose();
                 return;
@@ -111,22 +109,16 @@ namespace XPRPC.Server
                 
             lock (_inactiveSessions)
             {
-                if (_inactiveSessions.ContainsKey(sessionKey))
-                {
-                    session.Dispose();
-                }
-                else
-                {
+                System.Diagnostics.Debug.Assert(!_inactiveSessions.ContainsKey(sessionKey));
                     _inactiveSessions[sessionKey] = new SessionRecord<TService> { Session = session };
                 }
             }
-        }
 
         private TcpSession<TService> MakeSession(string sessionKey, Stream stream)
         {
             lock (_inactiveSessions)
             {
-                if (_inactiveSessions.ContainsKey(sessionKey)) //client reconnects
+                if (_inactiveSessions.ContainsKey(sessionKey)) //client reconnect, use the existing session
                 {                    
                     var session = _inactiveSessions[sessionKey].Session;
                     _inactiveSessions.Remove(sessionKey);
@@ -138,7 +130,6 @@ namespace XPRPC.Server
             return new TcpSession<TService>(
                     service: SessionService,
                     clientStream: stream,
-                    cancellation: _cancellationTokenSource.Token,
                     accessToken: _descriptor.AccessToken
                 );
         }
@@ -185,7 +176,7 @@ namespace XPRPC.Server
         {
             if (_listener != null)
             {
-                _cancellationTokenSource.Cancel();
+                _quit = true;
                 _listener.Stop();
                 _eventDone.WaitOne();
                 _listener = null;
@@ -204,6 +195,7 @@ namespace XPRPC.Server
             }
         }
 
+        private bool disposedValue;
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -212,7 +204,6 @@ namespace XPRPC.Server
                 {
                     Stop();
                     _eventDone.Dispose();
-                    _cancellationTokenSource.Dispose();
                 }
                 disposedValue = true;
             }

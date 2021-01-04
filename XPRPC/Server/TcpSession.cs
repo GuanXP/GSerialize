@@ -17,15 +17,12 @@ using GSerialize;
 namespace XPRPC.Server
 {
     public class TcpSession<TService> : IDisposable
-    where TService: IDisposable
     {
-        private bool disposedValue;
-        public bool Disposed => disposedValue;
         private readonly ServerDataChannel<TService> _dataChannel;
 
-        public TcpSession(TService service, Stream clientStream, CancellationToken cancellation, String accessToken)
+        public TcpSession(TService service, Stream clientStream, String accessToken)
         {
-            _dataChannel = new ServerDataChannel<TService>(service, accessToken, cancellation);
+            _dataChannel = new ServerDataChannel<TService>(service, accessToken);
             SetClientStream(clientStream);
         }
 
@@ -39,6 +36,7 @@ namespace XPRPC.Server
             return _dataChannel.InteractWithRemoteAsync();
         }
 
+        private bool disposedValue;
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -60,7 +58,6 @@ namespace XPRPC.Server
     }
 
     public class ServerDataChannel<TService> : DataChannel
-    where TService: IDisposable
     {
         public TService Service{get; private set;}
         public bool AccessGranted{ get; private set;}
@@ -71,8 +68,7 @@ namespace XPRPC.Server
 
         private static readonly string s_InterfaceName = typeof(TService).VersionName();
 
-        public ServerDataChannel(TService service, string accessToken, CancellationToken cancellationToken)
-        :base(cancellationToken)
+        public ServerDataChannel(TService service, string accessToken)
         {   
             Service = service;
             _accessToken = accessToken;

@@ -13,7 +13,6 @@ using XPRPC.Service.Logger;
 namespace XPRPC.Server
 {
     public class TcpServiceRunner<TService> : ServiceRunner<TService>
-    where TService : IDisposable
     {
         TcpServer<TService> _tcpServer;
         Client.TcpServiceResolver _resolver;
@@ -21,10 +20,9 @@ namespace XPRPC.Server
         public TcpServiceRunner(
             TService service,             
             ServiceDescriptor descriptor, 
-            bool holdService,
             ILogger logger,
             X509Certificate sslCertificate)
-        : base(service, descriptor, holdService)
+        : base(service, descriptor)
         {            
             if (sslCertificate != null)
             {
@@ -35,7 +33,6 @@ namespace XPRPC.Server
 
         protected override void Dispose(bool disposing)
         {
-            // be careful about the sequence, resign service from ServiceManager and dispose ServiceManager
             base.Dispose(disposing);
             _tcpServer?.Dispose();
             _tcpServer = null;

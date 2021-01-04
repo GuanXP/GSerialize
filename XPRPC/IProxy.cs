@@ -11,7 +11,7 @@ using System.IO;
 
 namespace XPRPC
 {
-    public interface IProxy
+    public interface IProxy : IDisposable
     {
         void FireEvent(Int16 eventID, Stream serializedEventArgs);
     }

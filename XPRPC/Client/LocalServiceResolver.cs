@@ -33,7 +33,7 @@ namespace XPRPC.Client
             return LocalManagerRunner.Instance.CreateSession();
         }
 
-        protected override bool ServiceIsActive(IDisposable service)
+        protected override bool ServiceIsActive(Object service)
         {
             return true;
         }

@@ -13,20 +13,17 @@ using System.Threading;
 namespace XPRPC.Server
 {
     public abstract class ServiceRunner<TService> : IDisposable
-        where TService : IDisposable
     {
         protected abstract IServiceManager ResolveServiceManager(ServiceDescriptor descriptor);
 
         public string ServiceName => Descriptor.Name;
         private bool _started = false;
-        private readonly bool _holdService;
         private readonly Timer _timerPing;
 
-        public ServiceRunner(TService service, ServiceDescriptor descriptor, bool holdService)
+        public ServiceRunner(TService service, ServiceDescriptor descriptor)
         {
             Service = service;
             Descriptor = descriptor;
-            _holdService = holdService;
             Descriptor.AccessToken = TokenGenerator.RandomToken(64);
             Descriptor.InterfaceName = typeof(TService).FullName;
             _timerPing = new Timer(
@@ -94,13 +91,12 @@ namespace XPRPC.Server
             }
         }
 
-        public void Stop()
+        private void Stop()
         {
             if (_started)
             {
                 _started = false;
                 ResignService();
-                _timerPing.Change(dueTime: Timeout.InfiniteTimeSpan, period: Timeout.InfiniteTimeSpan);
             }
         }
 
@@ -122,12 +118,8 @@ namespace XPRPC.Server
             {
                 if (disposing)
                 {                    
-                    Stop();
                     _timerPing.Dispose();
-                    if (_holdService)
-                    {
-                        Service.Dispose();
-                    }                   
+                    Stop();
                 }
                 disposedValue = true;
             }

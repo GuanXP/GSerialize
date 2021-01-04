@@ -18,30 +18,19 @@ using GSerialize;
 
 namespace XPRPC.Client
 {
-    class ConnectionCountEventArgs: EventArgs
-    {
-        public int Count {get; set;}
-    }
-
     public class TcpConnection<TService>: IDisposable
-    where TService : IDisposable
-    {
-        private readonly CancellationTokenSource _cancellation = new CancellationTokenSource();
-        private readonly ManualResetEventSlim _eventDone = new ManualResetEventSlim(false);
-        private ClientDataChannel<TService> _dataChannel;
-        private ServiceDescriptor ServiceDescriptor;        
-        
-        private bool disposedValue;
-        private object _lock = new object();
+    {   
+        private readonly ClientDataChannel<TService> _dataChannel;
+        private readonly ServiceDescriptor ServiceDescriptor;
         private readonly string _sessionKey = TokenGenerator.RandomToken(16);
+        private Stream _tcpStream;
 
         private int _connectionCount = 0;
-        internal event EventHandler<ConnectionCountEventArgs> ConnectionCountEvent;
  
         public TcpConnection(ServiceDescriptor descriptor)
         {
             ServiceDescriptor = descriptor;
-            _dataChannel = new ClientDataChannel<TService>(descriptor.AccessToken, _cancellation.Token);
+            _dataChannel = new ClientDataChannel<TService>(descriptor.AccessToken);
         }
 
         public TService GetService()
@@ -51,19 +40,19 @@ namespace XPRPC.Client
 
         public void Connect()
         {
-            if (_dataChannel.DataStream == null)
-            {
-                _eventDone.Reset();
+            if (_tcpStream == null)
+            {                
                 var client = new TcpClient();
                 client.Connect(ServiceDescriptor.ServiceHost, ServiceDescriptor.ServicePort);
-                _dataChannel.DataStream = MakeStream(client);
+                _tcpStream = MakeStream(client);
+                _dataChannel.DataStream = _tcpStream;
                 SendSessionKey(_dataChannel.DataStream);
                 Task.Run(InteractWithServer);
-                
-                _dataChannel.OnConnected();
-
                 ++_connectionCount;
-                ConnectionCountEvent?.Invoke(GetService(), new ConnectionCountEventArgs { Count = _connectionCount });
+                if (_connectionCount == 1)
+                {
+                    _dataChannel.OnConnected();
+                }
             }
         }
 
@@ -92,14 +81,6 @@ namespace XPRPC.Client
             }
         }
 
-        private void Close()
-        {
-            _cancellation.Cancel();
-            _eventDone.Wait();
-            _dataChannel.DataStream?.Dispose();
-            _dataChannel.DataStream = null;
-        }
-
         private async void InteractWithServer()
         {
             try
@@ -108,7 +89,7 @@ namespace XPRPC.Client
             }
             catch(IOException)
             { 
-                if (!_cancellation.IsCancellationRequested && TryReconnect())
+                if (!_dataChannel.Disposed && TryReconnect())
                 {
                     return;
                 }
@@ -116,15 +97,14 @@ namespace XPRPC.Client
             catch
             {
             }
-            _eventDone.Set();
         }
 
         private bool TryReconnect()
         {
-            _eventDone.Set();
-            Close();
             try
             {
+                _tcpStream?.Dispose();
+                _tcpStream = null;
                 Connect(); 
                 return true;
             } 
@@ -135,18 +115,19 @@ namespace XPRPC.Client
             return false;
         }
 
-        public bool Disposed => disposedValue;
+        public bool Disposed { get; private set; }
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!Disposed)
             {
                 if (disposing)
-                {
-                    Close();
-                    _cancellation.Dispose();
-                    _eventDone.Dispose();
+                {                    
+                    //be carefull of the sequence
+                    _dataChannel.Dispose();
+                    _tcpStream?.Dispose();
+                    _tcpStream = null;
                 }
-                disposedValue = true;
+                Disposed = true;
             }
         }
 
@@ -158,13 +139,12 @@ namespace XPRPC.Client
     }
 
     class ClientDataChannel<TService> : DataChannel
-    where TService : IDisposable
     {
         private static readonly string s_InterfaceName = typeof(TService).VersionName();
         private readonly Timer _timerPing;
         private readonly string _serviceAccessToken;
         
-        public ClientDataChannel(string serviceAccessToken, CancellationToken cancellationToken) : base(cancellationToken)
+        public ClientDataChannel(string serviceAccessToken)
         {
             _timerPing = new Timer(callback: OnTimerPing, state: null, dueTime: Timeout.Infinite, period: 100_000);
             _serviceAccessToken = serviceAccessToken;
@@ -205,7 +185,7 @@ namespace XPRPC.Client
             if (!serviceSupported)
             {
                 var remoteInterfaceName = packer.ReadString();
-                throw new Exception($"expect {s_InterfaceName}，but server site returns {remoteInterfaceName}");
+                throw new Exception($"expect {s_InterfaceName}，but server gives {remoteInterfaceName}");
             }
         }
 

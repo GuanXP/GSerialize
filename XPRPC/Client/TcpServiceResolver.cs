@@ -21,7 +21,7 @@ namespace XPRPC.Client
 
     public sealed class TcpServiceResolver : ServiceResolver
     {
-        readonly List<ConnectionRecord> _connections = new List<ConnectionRecord>();
+        readonly LinkedList<ConnectionRecord> _connections = new LinkedList<ConnectionRecord>();
         readonly object _lock = new object();
 
         public TcpServiceResolver(ServiceDescriptor serviceManagerDesc, string clientID, string secretKey)
@@ -51,7 +51,7 @@ namespace XPRPC.Client
                         InterfaceType = typeof(TService),
                         Descriptor = descriptor
                     };
-                    _connections.Add(record);
+                    _connections.AddFirst(record);
                 }
                 connection = record.Connection as TcpConnection<TService>;
             }
@@ -61,26 +61,10 @@ namespace XPRPC.Client
 
         protected override IServiceManager ResolveServiceManager(ServiceDescriptor descriptor)
         {
-            var manager = ResolveService<IServiceManager>(descriptor);
-            lock (_lock)
-            {
-                var record = FindRecord(descriptor, typeof(IServiceManager));
-                var connection = record.Connection as TcpConnection<IServiceManager>;
-                connection.ConnectionCountEvent += OnManagerConnected;
-            }
-            return manager;
+            return ResolveService<IServiceManager>(descriptor);
         }
 
-        private void OnManagerConnected(object sender, ConnectionCountEventArgs e)
-        {
-            if (e.Count > 1) //reconnect
-            {
-                var manager = (IServiceManager)sender;
-                manager.AuthenticateClient(ClientID, SecretKey);
-            }
-        }
-
-        protected override bool ServiceIsActive(IDisposable service)
+        protected override bool ServiceIsActive(Object service)
         {
             return true;
         }

@@ -52,7 +52,7 @@ namespace XPRPC.Server
             }
         }
 
-        internal void AddService(string name, IDisposable service)
+        internal void AddService(string name, Object service)
         {
             lock(_lockServiceRegistrant)
             {
@@ -60,11 +60,11 @@ namespace XPRPC.Server
             }
         }
 
-        internal IDisposable FindService(string name)
+        internal Object FindService(string name)
         {
             lock (_lockServiceRegistrant)
             {
-                _registeredServices.TryGetValue(name, out IDisposable service);
+                _registeredServices.TryGetValue(name, out Object service);
                 return service;
             }
         }
@@ -79,7 +79,7 @@ namespace XPRPC.Server
 
         ManualResetEventSlim _eventQuit = new ManualResetEventSlim(false);
         Thread _thread;
-        Dictionary<string, IDisposable> _registeredServices = new Dictionary<string, IDisposable>();
+        Dictionary<string, Object> _registeredServices = new Dictionary<string, Object>();
         object _lockServiceRegistrant = new object();
 
         private bool disposedValue;

@@ -12,12 +12,13 @@ using System.Threading.Tasks;
 
 namespace XPRPC
 {
-    public class ProxyItem
+    public class ProxyItem : IDisposable
     {
         public Type InterfaceType{ get; private set; }
         public Int16 RemoteObjectID{ get; private set; }
         public IProxy Proxy{ get; private set; }
         private readonly IDataSender _sender;
+        private bool disposedValue;
 
         private ProxyItem(Type interfaceType, Int16 id, IDataSender sender)
         {
@@ -51,6 +52,27 @@ namespace XPRPC
         public TService CacheProxy<TService>(Int16 remoteObjectID)
         {
             return _sender.CacheProxy<TService>(remoteObjectID);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    Proxy?.Dispose();
+                    Proxy = null;
+                }
+
+                disposedValue = true;
+            }
+        }
+
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

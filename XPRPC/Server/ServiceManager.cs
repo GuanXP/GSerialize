@@ -63,7 +63,7 @@ namespace XPRPC.Server
         {
             lock (_lock)
             {
-                if (!_accessConfig.ClientIsServiceProvider(clientID)) //未授权
+                if (!_accessConfig.ClientIsServiceProvider(clientID))
                 {
                     return;
                 }
@@ -83,7 +83,7 @@ namespace XPRPC.Server
         {
             lock (_lock)
             {
-                if (!_accessConfig.ClientIsServiceProvider(clientID)) return; //未授权
+                if (!_accessConfig.ClientIsServiceProvider(clientID)) return;
                 if (_services.TryGetValue(name, out ServiceRecord record))
                 {
                     if (accessToken == record.AccessToken)

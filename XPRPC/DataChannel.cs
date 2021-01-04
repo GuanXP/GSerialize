@@ -22,11 +22,12 @@ namespace XPRPC
     {
         private readonly ExclusiveLock _readingLock = new ExclusiveLock();
         private readonly ExclusiveLock _writtingLock = new ExclusiveLock();
-        private readonly CancellationToken _cancellation;
         private readonly Dictionary<Int32, ResponseTicket> _pendingRequests = new Dictionary<Int32, ResponseTicket>();
         private readonly Pool<ResponseTicket> _ticketPool = new Pool<ResponseTicket>(limit: 10);
         private readonly ServiceCache _serviceCache = new ServiceCache();
         private readonly ProxyCache _proxyCache = new ProxyCache();
+        private readonly CancellationTokenSource _cancellation = new CancellationTokenSource();
+        private bool _running = false;
 
         private readonly List<InteractiveBlock> s_ProtoTypes = new List<InteractiveBlock>
         {
@@ -34,20 +35,19 @@ namespace XPRPC
             new BlockObjectReply(),
             new BlockObjectEvent(),
         };
-        private bool disposedValue;
-        public bool Disposed => disposedValue;
+        
 
         public Stream DataStream { get; set; }
 
-        public DataChannel(CancellationToken cancellationToken)
+        public DataChannel()
         {
-            _cancellation = cancellationToken;
         }
 
         public async Task InteractWithRemoteAsync()
         {
             try
             {
+                _running = true;
                 var packer = new Packer(DataStream);
                 while (!_cancellation.IsCancellationRequested)
                 {
@@ -57,7 +57,12 @@ namespace XPRPC
             }
             finally
             {
-                ClearPendingRequest("RCP exception");
+                ClearPendingRequest("RPC error");
+                lock(_cancellation)
+                {
+                    _running = false;
+                    Monitor.PulseAll(_cancellation);
+                }
             }
         }
 
@@ -79,11 +84,11 @@ namespace XPRPC
         private async Task<MemoryStream> ReadBlockStreamAsync(Packer packer)
         {
             using var locker = _readingLock.Lock(); //read a whole block exclusively
-            var len = await packer.ReadInt32Async(_cancellation);
+            var len = await packer.ReadInt32Async(_cancellation.Token);
             if (len > 0)
             {
                 var bytes = new byte[len];
-                await packer.ReadNBytesAsync(bytes, len, _cancellation);
+                await packer.ReadNBytesAsync(bytes, len, _cancellation.Token);
                 return new MemoryStream(bytes, 0, len);
             }
             return new MemoryStream();
@@ -250,17 +255,17 @@ namespace XPRPC
         {
             if (block.Success)
             {
-                HandleResult(block);
+                OnResult(block);
             }
             else
             {
                 var exceptionMessage = new Packer(block.DataStream).ReadString();
-                HandleRemoteException(exceptionMessage, block.RequestID);
+                OnRemoteException(exceptionMessage, block.RequestID);
             }
             return Task.CompletedTask;
         }
 
-        private void HandleRemoteException(string exceptionMessage, int requestID)
+        private void OnRemoteException(string exceptionMessage, int requestID)
         {
             lock(_pendingRequests)
             {
@@ -272,7 +277,7 @@ namespace XPRPC
             }
         }
 
-        private void HandleResult(BlockObjectReply block)
+        private void OnResult(BlockObjectReply block)
         {
             lock(_pendingRequests)
             {
@@ -308,15 +313,29 @@ namespace XPRPC
             }
         }
 
+        private void StopInteraction()
+        {
+            _cancellation.Cancel();
+            lock (_cancellation)
+            {
+                while (_running) Monitor.Wait(_cancellation);
+            }
+        }
+
+        #region IDisposable
+
+        public bool Disposed { get; private set; }
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!Disposed)
             {
                 if (disposing)
                 {
+                    _proxyCache.Dispose();
                     _ticketPool.Dispose();                   
+                    StopInteraction();
                 }
-                disposedValue = true;
+                Disposed = true;
             }
         }
 
@@ -325,5 +344,7 @@ namespace XPRPC
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
+        #endregion
     }
 }
