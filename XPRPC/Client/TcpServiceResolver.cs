@@ -18,12 +18,20 @@ namespace XPRPC.Client
         public Type InterfaceType;
         public ServiceDescriptor Descriptor;
     }
-
+    /// <summary>
+    /// Class to resolve remote service via TCP connection.
+    /// </summary>
     public sealed class TcpServiceResolver : ServiceResolver
     {
         readonly LinkedList<ConnectionRecord> _connections = new LinkedList<ConnectionRecord>();
         readonly object _lock = new object();
-
+        
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="serviceManagerDesc">Descriptor to resolve the service manager</param>
+        /// <param name="clientID">Client ID to access the service</param>
+        /// <param name="secretKey">Secret key for the client ID</param>
         public TcpServiceResolver(ServiceDescriptor serviceManagerDesc, string clientID, string secretKey)
             : base(serviceManagerDesc, clientID, secretKey)
         {
@@ -51,11 +59,11 @@ namespace XPRPC.Client
                         InterfaceType = typeof(TService),
                         Descriptor = descriptor
                     };
-                    _connections.AddFirst(record);
+                    _connections.AddFirst(record); // Add head to close first
                 }
                 connection = record.Connection as TcpConnection<TService>;
             }
-            connection.Connect();
+
             return connection.GetService();
         }
 
@@ -71,12 +79,14 @@ namespace XPRPC.Client
 
         protected override void Dispose(bool disposing)
         {
+            // We need dispose the service proxies before close the connection
             base.Dispose(disposing);
             CloseConnections();
         }
 
         private void CloseConnections()
         {
+            // Inverse order to dispose since there may be dependencies among the proxies
             foreach(var c in _connections)
             {
                 c.Connection.Dispose();

@@ -43,9 +43,9 @@ namespace XPRPC
 
         public MemoryStream GetResponseData()
         {
-            if(!_eventDone.Wait(60_000))
+            if(!_eventDone.Wait(10_000))
             {
-                throw new Exception("Server responses timeout");
+                throw new Exception("Server response timeout");
             }
 
             if (string.IsNullOrEmpty(_exceptionMessage))
@@ -107,6 +107,7 @@ namespace XPRPC
 
         public void Dispose()
         {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }

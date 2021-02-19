@@ -24,7 +24,7 @@ namespace XPRPC
         private readonly Object _lock = new Object();
 
         public static DispatcherGenerator Instance { get; } = new DispatcherGenerator();
-        public readonly bool OutputDebug = false;
+        public readonly bool OutputDebug = true;
 
 
         public IDispatcher GetDispatcher(ServiceItem serviceItem)
@@ -57,7 +57,7 @@ namespace XPRPC
             var codeLine = GenerateClassForService(serviceType);
             var referencedAssemblies = DependencyWalker.GetReferencedAssemblies(
                 new Assembly[]{serviceType.Assembly, typeof(IDispatcher).Assembly});            
-            var compiledAssembly = Compile(codeLine, $"{serviceType.VisibleClassName()}_stub.dll", referencedAssemblies);
+            var compiledAssembly = Compile(codeLine, $"{serviceType.CompilableClassName()}_stub.dll", referencedAssemblies);
             var fullClassName = $"XPRPC.Generated.{serviceType.GeneratedDispatcherClassName()}";
             var classType = compiledAssembly.GetType(fullClassName);            
             var factoryMethod = classType.GetMethod("New");
@@ -86,7 +86,7 @@ namespace XPRPC
                 .WithOptions(options)
                 .AddReferences(references)
                 .AddSyntaxTrees(tree);
-            var mem = new MemoryStream();
+            using var mem = new MemoryStream();
             var result = compilation.Emit(mem);
             if (!result.Success)
             {
@@ -111,11 +111,11 @@ namespace XPRPC
             codeLines.Add($"public sealed class {className} : IDispatcher");
             codeLines.Add("{");
             codeLines.Add("readonly ServiceItem _serviceItem;");
-            codeLines.Add($"readonly {serviceType.VisibleClassName()} _service;");
+            codeLines.Add($"readonly {serviceType.CompilableClassName()} _service;");
             codeLines.Add($"private {className}(ServiceItem serviceItem)");
             codeLines.Add("{");
             codeLines.Add("_serviceItem = serviceItem;");
-            codeLines.Add($"_service = ({serviceType.VisibleClassName()})serviceItem.Service;");
+            codeLines.Add($"_service = ({serviceType.CompilableClassName()})serviceItem.Service;");
             codeLines.Add("}");
 
             codeLines.Add($"public static {className} New(ServiceItem serviceItem)");
@@ -174,9 +174,9 @@ namespace XPRPC
 
         private IEnumerable<string> GenerateMethodCall(MethodInfo method, Int16 methodID)
         {
-            if (method.IsIndexer()) throw new NotSupportedException("Indexer not supported, please user setter/getter");
+            if (method.IsIndexer()) throw new NotSupportedException("Indexer unsupported, use setter/getter instead");
             var codeLines = new List<string>();
-            // methods signature
+            //the method signature
             if (method.IsSynchronized())
             {
                 codeLines.Add($"private Task {GeneratedMethodCallName(method, methodID)}(Stream dataStream, MemoryStream resultStream)");
@@ -192,7 +192,7 @@ namespace XPRPC
                 codeLines.Add($"System.Console.WriteLine(\"{msg}\");");
             }
 
-            // deserialize the params
+            //deserialize the parameters
             codeLines.Add("var serializer = new Serializer(dataStream);");
             foreach(var p in method.GetParameters())
             {
@@ -200,8 +200,8 @@ namespace XPRPC
                 {
                     var id_name = $"{p.Name}_objectID";
                     codeLines.Add($"var {id_name} = serializer.Deserialize<Int16>();");
-                    var nonNull = $"_serviceItem.CacheProxy<{p.ParameterType.VisibleClassName()}>({id_name})";
-                    codeLines.Add($"{p.ParameterType.VisibleClassName()} {p.Name} = {id_name} < 0 ? null : {nonNull} ;");
+                    var nonNull = $"_serviceItem.CacheProxy<{p.ParameterType.CompilableClassName()}>({id_name})";
+                    codeLines.Add($"{p.ParameterType.CompilableClassName()} {p.Name} = {id_name} < 0 ? null : {nonNull} ;");
                 }
                 else
                 {
@@ -209,7 +209,7 @@ namespace XPRPC
                 }
             }
 
-            // call to the target
+            //call the service object
             if (method.ReturnType.IsVoid())
             {
                 codeLines.Add($"_service.{method.Name}(");
@@ -227,7 +227,7 @@ namespace XPRPC
                 codeLines.Add($"var result = _service.{method.Name}(");
             }            
 
-            // pass params to target
+            //pass the parameters
             var isFirstParam = true;
             foreach(var p in method.GetParameters())
             {
@@ -243,7 +243,7 @@ namespace XPRPC
             }
             codeLines.Add(");");
 
-            // serialize result
+            //serialize the returns to result stream
             if (!method.ReturnType.IsVoid() && !method.ReturnType.IsTask())
             {
                 codeLines.Add("serializer = new Serializer(resultStream);");
@@ -253,7 +253,7 @@ namespace XPRPC
                     codeLines.Add("if (result == null) {");
                     codeLines.Add("serializer.Serialize<Int16>(-1);");
                     codeLines.Add("} else {");
-                    codeLines.Add($"var resultObjectID = _serviceItem.CacheService<{method.ReturnType.VisibleClassName()}>(result);");
+                    codeLines.Add($"var resultObjectID = _serviceItem.CacheService<{method.ReturnType.CompilableClassName()}>(result);");
                     codeLines.Add("serializer.Serialize<Int16>(resultObjectID);");
                     codeLines.Add("}");
                 }
@@ -335,7 +335,7 @@ namespace XPRPC
                 codeLines.Add($"System.Console.WriteLine(\"{msg}\");");
             }
 
-            // unregister events
+            //remove event handlers
             foreach (var eventInfo in serviceType.DeclaredEvents())
             {
                 var registered = eventInfo.RegisteredFieldName();

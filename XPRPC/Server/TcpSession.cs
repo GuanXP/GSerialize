@@ -17,7 +17,7 @@ using GSerialize;
 namespace XPRPC.Server
 {
     public class TcpSession<TService> : IDisposable
-    {
+    {        
         private readonly ServerDataChannel<TService> _dataChannel;
 
         public TcpSession(TService service, Stream clientStream, String accessToken)
@@ -78,7 +78,7 @@ namespace XPRPC.Server
             _channelCalls[903] = ClientPing;
         }
 
-        protected override void OnChannelCall(BlockObjectCall block, MemoryStream resultStream)
+        protected override void OnChannelCall(BlockCall block, MemoryStream resultStream)
         {
             if (_channelCalls.TryGetValue(block.MethodID, out ChannelCall method))
             {
@@ -86,11 +86,11 @@ namespace XPRPC.Server
             }
             else
             {
-                throw new InvalidOperationException($"can't found method with id = {block.MethodID}");
+                throw new InvalidOperationException($"未能找到合适方法id = {block.MethodID}");
             }
         }
 
-        protected override bool CanCall(BlockObjectCall block)
+        protected override bool CanCall(BlockCall block)
         {
             if (block.ObjectID < 0 && _channelCalls.ContainsKey(block.MethodID))
             {

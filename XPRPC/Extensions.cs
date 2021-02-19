@@ -39,16 +39,16 @@ namespace XPRPC
             return result;
         }
 
-        private static List<MethodInfo> GetMethods(Type serviceType, HashSet<Type> excludings)
+        private static List<MethodInfo> GetMethods(Type serviceType, HashSet<Type> exclusions)
         {
-            excludings.Add(serviceType);
+            exclusions.Add(serviceType);
             var methods = new List<MethodInfo>(serviceType.GetMethods());
             var info = serviceType.GetTypeInfo();
             foreach(var baseInterface in info.ImplementedInterfaces)
             {
-                if (baseInterface != typeof(IDisposable) && !excludings.Contains(baseInterface))
+                if (baseInterface != typeof(IDisposable) && !exclusions.Contains(baseInterface))
                 {
-                    methods.AddRange(GetMethods(baseInterface, excludings));
+                    methods.AddRange(GetMethods(baseInterface, exclusions));
                 }
             }
             return methods;
@@ -59,16 +59,16 @@ namespace XPRPC
             return GetEvents(serviceType, new HashSet<Type>());
         }
 
-        private static List<EventInfo> GetEvents(Type serviceType, HashSet<Type> excludings)
+        private static List<EventInfo> GetEvents(Type serviceType, HashSet<Type> exclusions)
         {
-            excludings.Add(serviceType);
+            exclusions.Add(serviceType);
             var events = new List<EventInfo>(serviceType.GetEvents());
             var info = serviceType.GetTypeInfo();
             foreach(var baseInterface in info.ImplementedInterfaces)
             {
-                if (!excludings.Contains(baseInterface))
+                if (!exclusions.Contains(baseInterface))
                 {
-                    events.AddRange(GetEvents(baseInterface, excludings));
+                    events.AddRange(GetEvents(baseInterface, exclusions));
                 }
             }
             return events;
@@ -89,29 +89,29 @@ namespace XPRPC
             return serviceType.FullName.StartsWith("System.Threading.Tasks.Task`1");
         }
 
-        internal static string VisibleClassName(this Type type)
+        internal static string CompilableClassName(this Type type)
         {
             if (type.FullName.StartsWith("System.Collections.Generic.List`1"))
             {                
                 var elementType = type.GetGenericArguments()[0];
-                return $"List<{elementType.VisibleClassName()}>";
+                return $"List<{elementType.CompilableClassName()}>";
             }
             if (type.FullName.StartsWith("System.Collections.Generic.Dictionary`2"))
             {
                 var kType = type.GetGenericArguments()[0];
                 var vType = type.GetGenericArguments()[1];
-                return $"Dictionary<{kType.VisibleClassName()}, {vType.VisibleClassName()}>";
+                return $"Dictionary<{kType.CompilableClassName()}, {vType.CompilableClassName()}>";
             }
             if (type.FullName.StartsWith("System.Threading.Tasks.Task`1"))
             {
                 var valueType = type.GetGenericArguments()[0];
-                return $"Task<{valueType.VisibleClassName()}>";
+                return $"Task<{valueType.CompilableClassName()}>";
             }
 
             if (type.IsArray)
             {
                 var elementType = type.GetElementType();
-                return $"{elementType.VisibleClassName()}[]";
+                return $"{elementType.CompilableClassName()}[]";
             }
             return type.FullName.Replace('+', '.');
         }
@@ -156,23 +156,23 @@ namespace XPRPC
 
         public static string AddingMethodName(this EventInfo info)
         {
-            return $"Add_{info.Name}";
+            return $"AddE_{info.Name}";
         }
 
         public static string RemovingMethodName(this EventInfo info)
         {
-            return $"Remove_{info.Name}";
+            return $"RemoveE_{info.Name}";
         }
 
         public static string HandlingMethodName(this EventInfo info)
         {
-            return $"On_{info.Name}";
+            return $"OnE_{info.Name}";
         }
 
         public static string ArgsTypeName(this EventInfo info)
         {
             var t = info.EventHandlerType.GenericTypeArguments[0];
-            return t.VisibleClassName();
+            return t.CompilableClassName();
         }
     }
 
@@ -186,7 +186,7 @@ namespace XPRPC
         public static string ReturnName(this MethodInfo method)
         {
             if (method.ReturnType.IsVoid()) return "void";
-            return method.ReturnType.VisibleClassName();
+            return method.ReturnType.CompilableClassName();
         }
 
         public static bool IsIndexer(this MethodInfo method)

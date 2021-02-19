@@ -31,6 +31,7 @@ namespace XPRPC.Client
         {
             ServiceDescriptor = descriptor;
             _dataChannel = new ClientDataChannel<TService>(descriptor.AccessToken);
+            Connect();
         }
 
         public TService GetService()
@@ -38,21 +39,22 @@ namespace XPRPC.Client
             return _dataChannel.CacheProxy<TService>(remoteObjectID: 0);
         }
 
-        public void Connect()
+        private void Connect()
         {
-            if (_tcpStream == null)
-            {                
-                var client = new TcpClient();
-                client.Connect(ServiceDescriptor.ServiceHost, ServiceDescriptor.ServicePort);
-                _tcpStream = MakeStream(client);
-                _dataChannel.DataStream = _tcpStream;
-                SendSessionKey(_dataChannel.DataStream);
-                Task.Run(InteractWithServer);
-                ++_connectionCount;
-                if (_connectionCount == 1)
-                {
-                    _dataChannel.OnConnected();
-                }
+            _tcpStream?.Dispose();
+            _tcpStream = null;
+
+            var client = new TcpClient();
+            client.Connect(ServiceDescriptor.ServiceHost, ServiceDescriptor.ServicePort);            
+            _tcpStream = MakeStream(client);                
+            SendSessionKey(_tcpStream);
+
+            _dataChannel.DataStream = _tcpStream;
+            Task.Run(InteractWithServer);
+            ++_connectionCount;
+            if (_connectionCount == 1)
+            {
+                _dataChannel.OnConnected();
             }
         }
 
@@ -69,7 +71,7 @@ namespace XPRPC.Client
                 var sslStream = new SslStream(
                 client.GetStream(), 
                 leaveInnerStreamOpen: false,
-                #pragma warning disable CA5359
+                #pragma warning disable CA5359 //accept all certificates
                 userCertificateValidationCallback: (sender, certificate, chain, sslPolicyErrors) => true);
                 #pragma warning restore CA5359
                 sslStream.AuthenticateAsClient("");
@@ -89,7 +91,7 @@ namespace XPRPC.Client
             }
             catch(IOException)
             { 
-                if (!_dataChannel.Disposed && TryReconnect())
+                if (!_dataChannel.Disposed && TryReconnect()) //网络异常，重连
                 {
                     return;
                 }
@@ -103,8 +105,6 @@ namespace XPRPC.Client
         {
             try
             {
-                _tcpStream?.Dispose();
-                _tcpStream = null;
                 Connect(); 
                 return true;
             } 
@@ -122,7 +122,7 @@ namespace XPRPC.Client
             {
                 if (disposing)
                 {                    
-                    //be carefull of the sequence
+                    //这里有严格次序要求
                     _dataChannel.Dispose();
                     _tcpStream?.Dispose();
                     _tcpStream = null;
@@ -157,16 +157,11 @@ namespace XPRPC.Client
             _timerPing.Change(dueTime: 10_000, period: 100_000);
         }
 
-        protected bool Connected => DataStream != null;
-
         private void OnTimerPing(Object state)
         {
             try
             {
-                if (Connected)
-                {
-                    Ping();
-                }
+                Ping();
             }
             catch
             {
@@ -185,7 +180,7 @@ namespace XPRPC.Client
             if (!serviceSupported)
             {
                 var remoteInterfaceName = packer.ReadString();
-                throw new Exception($"expect {s_InterfaceName}，but server gives {remoteInterfaceName}");
+                throw new Exception($"期望{s_InterfaceName}，但服务器端为{remoteInterfaceName}");
             }
         }
 
@@ -199,7 +194,7 @@ namespace XPRPC.Client
             var granted = packer.ReadBool();
             if (!granted)
             {
-                throw new AccessViolationException("Invalid access token");
+                throw new AccessViolationException("无效的安全码");
             }
             CacheProxy<TService>(remoteObjectID: 0);
         }

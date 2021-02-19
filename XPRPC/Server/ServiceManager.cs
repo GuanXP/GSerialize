@@ -22,9 +22,6 @@ namespace XPRPC.Server
 
     public class ServiceManager
     {
-        /// <summary>
-        /// Service list indexed by name
-        /// </summary>
         Dictionary<string, ServiceRecord> _services = new Dictionary<string, ServiceRecord>();
 
         AccessConfig _accessConfig = new AccessConfig();
@@ -113,7 +110,6 @@ namespace XPRPC.Server
                 }
             }
 
-            // 通知时不加锁
             foreach(var name in expiredServices)
             {
                 _services.Remove(name);

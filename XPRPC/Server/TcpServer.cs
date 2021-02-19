@@ -27,7 +27,7 @@ namespace XPRPC.Server
     }
     public class TcpServer<TService> : IDisposable
     {
-        private TcpListener _listener;
+        private TcpListener _listener;        
         private readonly ILogger _logger;
         private readonly ServiceDescriptor _descriptor;
         private readonly ManualResetEvent _eventDone = new ManualResetEvent(true);
@@ -110,9 +110,9 @@ namespace XPRPC.Server
             lock (_inactiveSessions)
             {
                 System.Diagnostics.Debug.Assert(!_inactiveSessions.ContainsKey(sessionKey));
-                    _inactiveSessions[sessionKey] = new SessionRecord<TService> { Session = session };
-                }
+                _inactiveSessions[sessionKey] = new SessionRecord<TService> { Session = session };
             }
+        }
 
         private TcpSession<TService> MakeSession(string sessionKey, Stream stream)
         {

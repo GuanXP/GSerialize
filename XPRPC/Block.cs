@@ -15,18 +15,18 @@ namespace XPRPC
 {
     public enum BlockKey
     {
-        ObjectCall = 3,
-        ObjectReply = 4,
-        ObjectEvent = 5
+        Call = 3,
+        Reply = 4,
+        Event = 5
     }
 
-    public abstract class InteractiveBlock
+    public abstract class Block
     {
         public Stream DataStream { get; set; }
         public abstract Task CallChannel(DataChannel channel);        
         protected abstract void WriteHeader(Packer packer);
         public abstract BlockKey Key { get; }
-        public abstract InteractiveBlock ReadFromStream(Stream stream);
+        public abstract Block ReadFromStream(Stream stream);
 
         public void WriteToStream(Stream stream)
         {
@@ -37,13 +37,13 @@ namespace XPRPC
         }
     }
 
-    public class BlockObjectCall : InteractiveBlock
+    public class BlockCall : Block
     {
         public Int32 RequestID;
-        public Int16 ObjectID; // -1 means an global call without object
+        public Int16 ObjectID; // -1 means a global call related to the session
         public Int16 MethodID;
 
-        public override BlockKey Key => BlockKey.ObjectCall;
+        public override BlockKey Key => BlockKey.Call;
 
         public override Task CallChannel(DataChannel channel)
         {
@@ -57,10 +57,10 @@ namespace XPRPC
             packer.WriteInt16(MethodID);
         }
 
-        public override InteractiveBlock ReadFromStream(Stream stream)
+        public override Block ReadFromStream(Stream stream)
         {
             var packer = new Packer(stream);
-            return new BlockObjectCall
+            return new BlockCall
             {
                 RequestID = packer.ReadInt32(),
                 ObjectID = packer.ReadInt16(),
@@ -70,12 +70,12 @@ namespace XPRPC
         }
     }
 
-    class BlockObjectReply : InteractiveBlock
+    class BlockReply : Block
     {
         public Int32 RequestID;
         public bool Success;
 
-        public override BlockKey Key => BlockKey.ObjectReply;
+        public override BlockKey Key => BlockKey.Reply;
 
         public override Task CallChannel(DataChannel channel)
         {
@@ -88,10 +88,10 @@ namespace XPRPC
             packer.WriteBool(Success);
         }
 
-        public override InteractiveBlock ReadFromStream(Stream stream)
+        public override Block ReadFromStream(Stream stream)
         {
             var packer = new Packer(stream);
-            return new BlockObjectReply
+            return new BlockReply
             {
                 RequestID = packer.ReadInt32(),
                 Success = packer.ReadBool(),
@@ -99,13 +99,13 @@ namespace XPRPC
             };
         }
 
-        public static BlockObjectReply BuildFromException(Exception exception, Int32 requestID)
+        public static BlockReply BuildFromException(Exception exception, Int32 requestID)
         {
             var memStream = new MemoryStream();
             var packer = new Packer(memStream);
             packer.WriteString(exception.Message);
             memStream.Seek(0, SeekOrigin.Begin);
-            return new BlockObjectReply
+            return new BlockReply
             {
                 RequestID = requestID,
                 Success = false,
@@ -114,12 +114,12 @@ namespace XPRPC
         }
     }
 
-    public class BlockObjectEvent : InteractiveBlock
+    public class BlockEvent : Block
     {
         public Int16 ObjectID;
         public Int16 EventID;
 
-        public override BlockKey Key => BlockKey.ObjectEvent;
+        public override BlockKey Key => BlockKey.Event;
 
         public override Task CallChannel(DataChannel channel)
         {
@@ -132,10 +132,10 @@ namespace XPRPC
             packer.WriteInt16(EventID);
         }
 
-        public override InteractiveBlock ReadFromStream(Stream stream)
+        public override Block ReadFromStream(Stream stream)
         {
             var packer = new Packer(stream);
-            return new BlockObjectEvent
+            return new BlockEvent
             {
                 ObjectID = packer.ReadInt16(),
                 EventID = packer.ReadInt16(),

@@ -11,71 +11,63 @@ using System.Collections.Generic;
 
 namespace XPRPC
 {
-    /// <summary>
-    /// Manager to maintain services
-    /// </summary>
     public interface IServiceManager : IDisposable
     {
         /// <summary>
-        /// Authenticate a client is a predefined one
+        /// Authenticate a client
         /// </summary>
-        /// <param name="clientID">the predfined client ID</param>
-        /// <param name="secretKey">security key that only the client knows</param>
+        /// <param name="clientID">the client ID</param>
+        /// <param name="secretKey">the secret key for the client</param>
         /// <returns></returns>
         bool AuthenticateClient(string clientID, string secretKey);
 
         /// <summary>
-        /// Register a service
+        /// Add a new service
         /// </summary>
-        /// <param name="descriptor">the service descriptor</param>
+        /// <param name="descriptor">service descriptor</param>
         /// <returns>
-        /// return a service token that can be used to operate the service later if succeed,
-        /// or a null string if failure.
+        /// A service token to operate the service later if succeeded;
+        /// An empty string if failed
         /// </returns>
         string AddService(ServiceDescriptor descriptor);
 
         /// <summary>
-        /// Unregister a service
+        /// Remove an existing service
         /// </summary>
-        /// <param name="name">the service name</param>
-        /// <param name="serviceToken">the service token returned from @AddService</param>
+        /// <param name="name">servie name</param>
+        /// <param name="serviceToken">The service token returned from @AddService</param>
         void RemoveService(string name, string serviceToken);
 
         /// <summary>
-        /// The service report itself healthy timely otherwise the ServiceManager
-        /// will judge it dead an remove it from the active service list.
+        /// Report a service is alive. If an service can't report itself alive in a period, 
+        /// service manager will judge it dead and remove it from the active services so that
+        ///  client can't access it any more.
         /// </summary>
-        /// <param name="name">servie name</param>
-        /// <param name="serviceToken">the service token returned from @AddService</param>
+        /// <param name="name">service name</param>
+        /// <param name="serviceToken">The service token returned from @AddService</param>
         void ReportServiceHealthy(string name, string serviceToken);
 
         /// <summary>
-        /// Try to query a service's descriptor
+        /// Get a service by name
         /// </summary>
         /// <param name="name">service name</param>
         /// <returns>
-        /// an available service descriptor if the service is alive and current client can access it,
-        /// otherwise a empty descriptor
+        /// The service descriptor if the service is running and the client can access it.
+        /// otherwise a default service descriptor without any information returned.
         /// </returns>
         ServiceDescriptor GetService(string name);
 
         /// <summary>
-        /// list all service descriptors that can be accessed by current client
+        /// Get all services that a client can access.
         /// </summary>
-        /// <returns>service descriptors list</returns>
+        /// <returns>list of service descriptors</returns>
         List<ServiceDescriptor> ListService();
 
-        /// <summary>
-        /// event to notify a service death.
-        /// </summary>
         event EventHandler<ServiceDeadEventArgs> ServiceDeadEvent;
     }
 
     public static class ServiceManagerExtension
     {
-        /// <summary>
-        /// check if a service exists
-        /// </summary>
         public static bool ServiceExists(this IServiceManager serviceManager, string servieName)
         {
             return !string.IsNullOrEmpty(serviceManager.GetService(servieName).Name);

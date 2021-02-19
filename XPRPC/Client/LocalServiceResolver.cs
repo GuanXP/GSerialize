@@ -11,8 +11,17 @@ using XPRPC.Server;
 
 namespace XPRPC.Client
 {
+    /// <summary>
+    /// Class to resolve local service that runs in same process
+    /// </summary>
     public sealed class LocalServiceResolver : ServiceResolver
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="serviceManagerDesc">Descriptor to resolve the service manager</param>
+        /// <param name="clientID">Client ID to access the service</param>
+        /// <param name="secretKey">Secret key for the client ID</param>
         public LocalServiceResolver(ServiceDescriptor serviceManagerDesc, string clientID, string secretKey) 
             : base(serviceManagerDesc, clientID, secretKey)
         {
@@ -22,7 +31,7 @@ namespace XPRPC.Client
         {
             if (string.IsNullOrEmpty(descriptor.Name))
             {
-                throw new NotSupportedException($"No service found with type {typeof(TService).Name}");
+                throw new NotSupportedException($"Unable to access {typeof(TService).Name}");
             }
 
             return (TService)LocalManagerRunner.Instance.FindService(descriptor.Name);

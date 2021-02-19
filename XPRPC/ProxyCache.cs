@@ -25,7 +25,7 @@ namespace XPRPC
                 {
                     item = ProxyItem.Build<TService>(remoteObjectID, sender);
                     _items.Add(item.RemoteObjectID, item);
-                    _orderedItems.AddFirst(item);
+                    _orderedItems.AddFirst(item); //�´����ķ���ǰ��
                 }
                 return (TService)item.Proxy;
             }            
@@ -40,7 +40,7 @@ namespace XPRPC
             }
         }
 
-        public void HandleEvent(BlockObjectEvent block)
+        public void HandleEvent(BlockEvent block)
         {
             FindByID(block.ObjectID)?.Proxy.FireEvent(block.EventID, block.DataStream);
         }
@@ -60,6 +60,7 @@ namespace XPRPC
 
         private void DisposeAll()
         {
+            //Dispose˳���봴��˳���෴���Է��˴�֮��������
             foreach(var item in _orderedItems)
             {
                 item.Dispose();

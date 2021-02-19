@@ -12,11 +12,21 @@ using XPRPC.Service.Logger;
 
 namespace XPRPC.Server
 {
+    /// <summary>
+    /// Run service via TCP protocol
+    /// </summary>
     public class TcpServiceRunner<TService> : ServiceRunner<TService>
     {
         TcpServer<TService> _tcpServer;
         Client.TcpServiceResolver _resolver;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="service">the service object</param>        
+        /// <param name="descriptor">service descriptor</param>        
+        /// <param name="logger">reference to ILogger. TcpServiceRunner doesn't dispose the logger</param>
+        /// <param name="sslCertificate">The certificate to build SSL, null means no SSL used. </param>
         public TcpServiceRunner(
             TService service,             
             ServiceDescriptor descriptor, 
@@ -33,6 +43,7 @@ namespace XPRPC.Server
 
         protected override void Dispose(bool disposing)
         {
+            //Sequence restrict: before closing ServiceManager, to resign published service first
             base.Dispose(disposing);
             _tcpServer?.Dispose();
             _tcpServer = null;

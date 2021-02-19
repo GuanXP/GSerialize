@@ -25,7 +25,7 @@ namespace XPRPC
                 if (item == null)
                 {
                     item = ServiceItem.Build<TService>(service, sender);
-                    if (_items.Count == 0) item.ObjectID = 0; //第一个service对象为根服务，ID固定为0
+                    if (_items.Count == 0) item.ObjectID = 0; //The first service object takes the fixed ID 0
                     _items.Add(item);
                     _soretedItems.Add(item.ObjectID, item);
                 }
@@ -42,7 +42,7 @@ namespace XPRPC
             }
         }
 
-        internal void CallObject(BlockObjectCall block, MemoryStream resultStream)
+        internal void CallObject(BlockCall block, MemoryStream resultStream)
         {
             var service = FindByID(block.ObjectID);
             if (service != null)
@@ -51,7 +51,7 @@ namespace XPRPC
             }
             else
             {
-                throw new NullReferenceException($"找不到id={block.ObjectID}的服务对象");
+                throw new NullReferenceException($"Can't find service object with id={block.ObjectID}");
             }
         }        
     }

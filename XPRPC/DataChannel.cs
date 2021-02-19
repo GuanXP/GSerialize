@@ -29,11 +29,11 @@ namespace XPRPC
         private readonly CancellationTokenSource _cancellation = new CancellationTokenSource();
         private bool _running = false;
 
-        private readonly List<InteractiveBlock> s_ProtoTypes = new List<InteractiveBlock>
+        private readonly List<Block> s_ProtoTypes = new List<Block>
         {
-            new BlockObjectCall(),
-            new BlockObjectReply(),
-            new BlockObjectEvent(),
+            new BlockCall(),
+            new BlockReply(),
+            new BlockEvent(),
         };
         
 
@@ -47,7 +47,7 @@ namespace XPRPC
         {
             try
             {
-                _running = true;
+                SetRunning(true);
                 var packer = new Packer(DataStream);
                 while (!_cancellation.IsCancellationRequested)
                 {
@@ -57,12 +57,17 @@ namespace XPRPC
             }
             finally
             {
-                ClearPendingRequest("RPC error");
-                lock(_cancellation)
-                {
-                    _running = false;
-                    Monitor.PulseAll(_cancellation);
-                }
+                ClearPendingRequest("RPC异常");
+                SetRunning(false);
+            }
+        }
+
+        private void SetRunning(bool running)
+        {
+            lock(_cancellation)
+            {
+                _running = running;
+                Monitor.PulseAll(_cancellation);
             }
         }
 
@@ -83,7 +88,7 @@ namespace XPRPC
 
         private async Task<MemoryStream> ReadBlockStreamAsync(Packer packer)
         {
-            using var locker = _readingLock.Lock(); //read a whole block exclusively
+            using var locker = await _readingLock.LockAsync();
             var len = await packer.ReadInt32Async(_cancellation.Token);
             if (len > 0)
             {
@@ -94,7 +99,7 @@ namespace XPRPC
             return new MemoryStream();
         }
 
-        private async Task SendBlockAsync(InteractiveBlock block)
+        private async Task SendBlockAsync(Block block)
         {
             using var memStream = new MemoryStream();
             var packer = new Packer(memStream);
@@ -105,7 +110,7 @@ namespace XPRPC
             packer.WriteInt32((Int32)memStream.Length - 4);
             memStream.Seek(0, SeekOrigin.Begin);
 
-            using var locker = _writtingLock.Lock(); //wite a whole block exclusively
+            using var locker = await _writtingLock.LockAsync();
             await memStream.CopyToAsync(DataStream);
         }
 
@@ -117,7 +122,7 @@ namespace XPRPC
             using var stream = new MemoryStream();
             var serializer = new Serializer(stream);
             serializer.Serialize(args);
-            var block = new BlockObjectEvent
+            var block = new BlockEvent
             {
                 ObjectID = objectID,
                 EventID = methodID,
@@ -139,7 +144,7 @@ namespace XPRPC
 
             try
             {
-                InteractiveBlock block = new BlockObjectCall
+                Block block = new BlockCall
                 {
                     RequestID = ticket.RequestSerial,
                     ObjectID = objectID,
@@ -167,7 +172,7 @@ namespace XPRPC
 
             try
             {
-                InteractiveBlock block = new BlockObjectCall
+                Block block = new BlockCall
                 {
                     RequestID = ticket.RequestSerial,
                     ObjectID = objectID,
@@ -210,18 +215,18 @@ namespace XPRPC
 
         #endregion IDataSender
 
-        protected virtual void OnChannelCall(BlockObjectCall block, MemoryStream resultStream)
+        protected virtual void OnChannelCall(BlockCall block, MemoryStream resultStream)
         {
         }
 
-        protected virtual bool CanCall(BlockObjectCall block)
+        protected virtual bool CanCall(BlockCall block)
         {
             return true;
         }
 
-        internal async Task OnObjectCall(BlockObjectCall request)
+        internal async Task OnObjectCall(BlockCall request)
         {                        
-            var reply = new BlockObjectReply{ RequestID = request.RequestID };
+            var reply = new BlockReply{ RequestID = request.RequestID };
             try
             {
                 if (CanCall(request))
@@ -240,18 +245,18 @@ namespace XPRPC
                 }
                 else
                 {
-                    var ex = new UnauthorizedAccessException("Access token need be verified");
-                    reply = BlockObjectReply.BuildFromException(ex, request.RequestID);
+                    var ex = new UnauthorizedAccessException("Access token error");
+                    reply = BlockReply.BuildFromException(ex, request.RequestID);
                 }
             }
             catch(Exception ex)
             {
-                reply = BlockObjectReply.BuildFromException(ex, request.RequestID);
+                reply = BlockReply.BuildFromException(ex, request.RequestID);
             }
             await SendBlockAsync(reply);
         }
 
-        internal Task OnObjectReply(BlockObjectReply block)
+        internal Task OnObjectReply(BlockReply block)
         {
             if (block.Success)
             {
@@ -277,7 +282,7 @@ namespace XPRPC
             }
         }
 
-        private void OnResult(BlockObjectReply block)
+        private void OnResult(BlockReply block)
         {
             lock(_pendingRequests)
             {
@@ -289,14 +294,14 @@ namespace XPRPC
             }
         }
 
-        internal Task OnObjectEvent(BlockObjectEvent block)
+        internal Task OnObjectEvent(BlockEvent block)
         {
             if (block.ObjectID < 0) return OnChannelEvent(block);
             _proxyCache.HandleEvent(block);
             return Task.CompletedTask;
         }
 
-        protected virtual Task OnChannelEvent(BlockObjectEvent block)
+        protected virtual Task OnChannelEvent(BlockEvent block)
         {
             return Task.CompletedTask;
         }
@@ -332,7 +337,7 @@ namespace XPRPC
                 if (disposing)
                 {
                     _proxyCache.Dispose();
-                    _ticketPool.Dispose();                   
+                    _ticketPool.Dispose();
                     StopInteraction();
                 }
                 Disposed = true;

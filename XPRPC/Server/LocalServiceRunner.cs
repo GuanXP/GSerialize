@@ -11,14 +11,14 @@ using System;
 namespace XPRPC.Server
 {
     /// <summary>
-    /// Publisher for local services
+    /// Runner to publish a local (in-process) service.
     /// </summary>
     public class LocalServiceRunner<TService> : ServiceRunner<TService>
     {
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="service">the concrete service object</param>
+        /// <param name="service">the service entity</param>
         /// <param name="descriptor">service descriptor</param>        
         public LocalServiceRunner(TService service, ServiceDescriptor descriptor)
         : base(service, descriptor)

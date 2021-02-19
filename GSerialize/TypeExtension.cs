@@ -33,23 +33,23 @@ namespace GSerialize
             return $"GSerialize.Generated.{type.GeneratedClassName2()}";
         }
 
-        internal static string VisibleClassName(this Type type)
+        internal static string CompilableClassName(this Type type)
         {
             if (type.Name == "List`1")
             {                
                 var elementType = type.GetGenericArguments()[0];
-                return $"List<{elementType.VisibleClassName()}>";
+                return $"List<{elementType.CompilableClassName()}>";
             }
             if (type.Name == "Dictionary`2")
             {
                 var kType = type.GetGenericArguments()[0];
                 var vType = type.GetGenericArguments()[1];
-                return $"Dictionary<{kType.VisibleClassName()}, {vType.VisibleClassName()}>";
+                return $"Dictionary<{kType.CompilableClassName()}, {vType.CompilableClassName()}>";
             }
             if (type.IsArray)
             {
                 var elementType = type.GetElementType();
-                return $"{elementType.VisibleClassName()}[]";
+                return $"{elementType.CompilableClassName()}[]";
             }
             return type.FullName.Replace('+', '.');
         }

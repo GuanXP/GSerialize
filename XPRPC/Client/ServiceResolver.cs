@@ -12,11 +12,20 @@ using System.Security;
 
 namespace XPRPC.Client
 {
+    /// <summary>
+    /// Base class to resolve a service
+    /// </summary>
     public abstract class ServiceResolver : IDisposable
     {
         protected abstract IServiceManager ResolveServiceManager(ServiceDescriptor descriptor);
         protected abstract TService ResolveService<TService>(ServiceDescriptor descriptor);
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="serviceManagerDesc">Descriptor to resolve the service manager</param>
+        /// <param name="clientID">Client ID to access the service</param>
+        /// <param name="secretKey">Secret key for the client ID</param>
         protected ServiceResolver(ServiceDescriptor serviceManagerDesc, string clientID, string secretKey)
         {
             ClientID = clientID;
@@ -26,11 +35,15 @@ namespace XPRPC.Client
             if (!manager.AuthenticateClient(clientID, secretKey))
             {
                 manager.Dispose();
-                throw new SecurityException("Failed to authenticate the client");
+                throw new SecurityException("Invalid client ID or secret key");
             }
             _serviceManager = manager;
         }
 
+        /// <summary>
+        /// Get a service object from the service manager
+        /// </summary>
+        /// <param name="name">The service name</param>
         public TService GetService<TService>(string name)
         {
             Object service = null;
@@ -41,6 +54,8 @@ namespace XPRPC.Client
             if (service == null || !ServiceIsActive(service))
             {
                 var desc = _serviceManager.GetService(name);
+                if (!desc.IsValid) return default(TService);
+
                 var newService = ResolveService<TService>(desc);
                 lock (_lock)
                 {
@@ -76,9 +91,9 @@ namespace XPRPC.Client
                 if (disposing)
                 {
                     _serviceManager?.Dispose();
-                _serviceManager = null;
-        }
-
+                    _serviceManager = null;
+                }
+                
                 disposedValue = true;
             }
         }

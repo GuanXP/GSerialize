@@ -12,14 +12,27 @@ using System.Threading;
 
 namespace XPRPC.Server
 {
+    /// <summary>
+    /// Runner to publish a service
+    /// </summary>
     public abstract class ServiceRunner<TService> : IDisposable
     {
+        /// <summary>
+        /// Resolve IServiceManager
+        /// </summary>
+        /// <param name="descriptor">service descriptor of IServiceManager</param>
+        /// <returns>Reference to IServiceManager, ServiceRunner will dispose it</returns>
         protected abstract IServiceManager ResolveServiceManager(ServiceDescriptor descriptor);
 
         public string ServiceName => Descriptor.Name;
         private bool _started = false;
         private readonly Timer _timerPing;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="service">The service entity</param>
+        /// <param name="descriptor">service descriptor</param>
         public ServiceRunner(TService service, ServiceDescriptor descriptor)
         {
             Service = service;
@@ -33,6 +46,12 @@ namespace XPRPC.Server
                 period: 10_000);
         }
 
+        /// <summary>
+        /// Start the runner
+        /// </summary>
+        /// <param name="serviceManagerDescriptor">service descriptor of IServiceManager</param>
+        /// <param name="clientID">client ID to publish this service </param>
+        /// <param name="secretKey">secret key of the publishing client ID</param>
         public void Start(ServiceDescriptor serviceManagerDescriptor, string clientID, string secretKey)
         {
             if (_started) return;
@@ -58,7 +77,7 @@ namespace XPRPC.Server
                 ServiceManager = ResolveServiceManager(_managerDescriptor);
                 if (!ServiceManager.AuthenticateClient(_clientID, _secretKey))
                 {
-                    throw new SecurityException($"{_clientID} failed authorization");
+                    throw new SecurityException($"{_clientID} fail to authenticate.");
                 }
             }
 
@@ -67,13 +86,13 @@ namespace XPRPC.Server
                 _serviceToken = ServiceManager.AddService(Descriptor);
                 if (string.IsNullOrEmpty(_serviceToken))
                 {
-                    throw new SecurityException($"service {ServiceName} failed to publish, please confirm access.");
+                    throw new SecurityException($"{ServiceName} fail to publish, access right required.");
                 }
-                System.Diagnostics.Debug.WriteLine($"service {ServiceName} published");
+                System.Diagnostics.Debug.WriteLine($"succeed publishing {ServiceName}");
             }
             else
             {
-                throw new SecurityException($"service {ServiceName} failed to publish, duplicate service names");
+                throw new SecurityException($"{ServiceName} fail to authenticate, service already exists");
             }
         }
 
@@ -83,7 +102,7 @@ namespace XPRPC.Server
             {
                 if (ServiceManager.ServiceExists(ServiceName) && !string.IsNullOrEmpty(_serviceToken))
                 {
-                    System.Diagnostics.Debug.WriteLine($"service {ServiceName} resigned");
+                    System.Diagnostics.Debug.WriteLine($"resign service {ServiceName}");
                     ServiceManager.RemoveService(Descriptor.Name, _serviceToken);
                 }
                 ServiceManager.Dispose();
@@ -117,9 +136,9 @@ namespace XPRPC.Server
             if (!disposedValue)
             {
                 if (disposing)
-                {                    
+                {
                     _timerPing.Dispose();
-                    Stop();
+                    Stop();                    
                 }
                 disposedValue = true;
             }

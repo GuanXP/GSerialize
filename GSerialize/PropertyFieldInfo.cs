@@ -62,17 +62,17 @@ namespace GSerialize
                 if (first)
                 {
                     first = false;
-                    sb.Append(p.VisibleClassName());
+                    sb.Append(p.CompilableClassName());
                 }
                 else
                 {
                     sb.Append(",");
-                    sb.Append(p.VisibleClassName());
+                    sb.Append(p.CompilableClassName());
                 }
             }
             if (first && MemberType.IsArray && MemberType.HasElementType)
             {
-                sb.Append(MemberType.GetElementType().VisibleClassName());
+                sb.Append(MemberType.GetElementType().CompilableClassName());
             }
             sb.Append(">");
             return sb.ToString();

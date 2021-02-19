@@ -24,7 +24,7 @@ namespace XPRPC
         private readonly Dictionary<string, MethodInfo> _factoryMethods = new Dictionary<string, MethodInfo>();
         private readonly Object _lock = new Object();
 
-        private readonly bool OutputDebug = false;
+        private readonly bool OutputDebug = true;
         internal static ProxyGenerator Instance{ get; } = new ProxyGenerator();
 
         private ProxyGenerator() {}
@@ -49,7 +49,7 @@ namespace XPRPC
             var codeLine = GenerateClassCode(serviceType);
             var referencedAssemblies = DependencyWalker.GetReferencedAssemblies(
                 new Assembly[]{serviceType.Assembly, typeof(ProxyItem).Assembly});            
-            var compiledAssembly = Compile(codeLine, $"{serviceType.VisibleClassName()}_proxy.dll", referencedAssemblies);
+            var compiledAssembly = Compile(codeLine, $"{serviceType.CompilableClassName()}_proxy.dll", referencedAssemblies);
             var fullClassName = $"XPRPC.Generated.{serviceType.GeneratedProxyClassName()}";
             var classType = compiledAssembly.GetType(fullClassName);            
             var factoryMethod = classType.GetMethod("New");
@@ -92,11 +92,11 @@ namespace XPRPC
         {
             if (!serviceType.IsInterface)
             {
-                throw new NotSupportedException($"{serviceType.Name} must be an interface");
+                throw new NotSupportedException($"{serviceType.Name} must be an interface.");
             }
             var codeLines = new List<string>();
             var className = serviceType.GeneratedProxyClassName();
-            var interfaceName = serviceType.VisibleClassName();
+            var interfaceName = serviceType.CompilableClassName();
             codeLines.Add("using System;");
             codeLines.Add("using System.IO;");
             codeLines.Add("using GSerialize;");
@@ -170,9 +170,11 @@ namespace XPRPC
             codeLines.Add("if (disposing && !_disposed)");
             codeLines.Add("{");
             codeLines.Add("_disposed = true;");
-            foreach(var eventInfo in serviceType.DeclaredEvents())
+            foreach(var eventInfo in serviceType.DeclaredEvents()) //remove event handlers
             {
-                codeLines.Add($"Remove_{eventInfo.Name}();"); //unregister events
+                codeLines.Add("try {");
+                codeLines.Add($"Remove_{eventInfo.Name}();");
+                codeLines.Add("} catch {}"); //ignore exception while disposing
             }
             codeLines.Add("}");
             codeLines.Add("}");
@@ -228,7 +230,7 @@ namespace XPRPC
             codeLines.Add("try {");
             codeLines.Add("using var stream = new MemoryStream();");
             codeLines.Add($"_proxyItem.SendCallRequest({methodID + 1}, stream.ToArray());");
-            codeLines.Add("} catch {}"); //we need catch all exceptions since the server might out of work
+            codeLines.Add("} catch {}"); //all exceptions need be caught here
             codeLines.Add("}");
 
             codeLines.Add($"private void Fire_{eventInfo.Name}(Stream dataStream)");       
@@ -250,7 +252,7 @@ namespace XPRPC
 
         private IEnumerable<string> GenerateMethod(short methodID, System.Reflection.MethodInfo method)
         {
-            if (method.IsIndexer()) throw new NotSupportedException("Indexer is not supported, please use setter/getter");
+            if (method.IsIndexer()) throw new NotSupportedException("Indexer unsupported, use setter/getter instead");
             
             var codeLines = new List<string>();
             if (method.IsSynchronized())
@@ -265,7 +267,7 @@ namespace XPRPC
             var isFirstParam = true;
             foreach(var p in method.GetParameters())
             {
-                var paramDeclare = $"{p.ParameterType.VisibleClassName()} {p.Name}";
+                var paramDeclare = $"{p.ParameterType.CompilableClassName()} {p.Name}";
                 if (!isFirstParam)
                 {
                     codeLines.Add($", {paramDeclare}");
@@ -324,7 +326,7 @@ namespace XPRPC
                 else if (method.ReturnType.IsInterface)
                 {
                     codeLines.Add("var returnObjectID = serializer.Deserialize<Int16>();");
-                    var nonNull = $"_proxyItem.CacheProxy<{method.ReturnType.VisibleClassName()}>(returnObjectID)";
+                    var nonNull = $"_proxyItem.CacheProxy<{method.ReturnType.CompilableClassName()}>(returnObjectID)";
                     codeLines.Add($"return returnObjectID >= 0 ? {nonNull} : null;");
                 }
                 else

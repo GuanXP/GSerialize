@@ -10,9 +10,6 @@ using System;
 
 namespace XPRPC
 {
-    /// <summary>
-    /// Helper to generate serialization statements while code generating
-    /// </summary>
     class SerializeStatement
     {
         public static string SerializeObject(Type type, string objectName)
@@ -44,35 +41,35 @@ namespace XPRPC
         {
             if (type.FullName.StartsWith("System.Collections.Generic.List"))
             {
-                var elementType = type.GetGenericArguments()[0].VisibleClassName();
+                var elementType = type.GetGenericArguments()[0].CompilableClassName();
                 return $"CollectionPacker.ReadList<{elementType}>(serializer);";
             }
 
             if (type.FullName.StartsWith("System.Nullable"))
             {
                 var valueType = type.GetGenericArguments()[0];
-                return $"CollectionPacker.ReadNullable<{valueType.VisibleClassName()}>(serializer);";
+                return $"CollectionPacker.ReadNullable<{valueType.CompilableClassName()}>(serializer);";
             }
 
             if (type.IsArray)
             {
                 if(type.GetArrayRank() == 1 && type.HasElementType)
-                    return $"CollectionPacker.ReadArray<{type.GetElementType().VisibleClassName()}>(serializer);";
+                    return $"CollectionPacker.ReadArray<{type.GetElementType().CompilableClassName()}>(serializer);";
                 else
                     throw new NotSupportedException($"{type.FullName} is not a supported type");
             }
 
             if (type.FullName.StartsWith("System.Collections.Generic.Dictionary"))
             {
-                var keyType = type.GetGenericArguments()[0].VisibleClassName();
-                var valueType = type.GetGenericArguments()[1].VisibleClassName();
+                var keyType = type.GetGenericArguments()[0].CompilableClassName();
+                var valueType = type.GetGenericArguments()[1].CompilableClassName();
                 return $"CollectionPacker.ReadDict<{keyType}, {valueType}>(serializer);";
             }
 
             if (type.IsEnum)
-                return $"CollectionPacker.ReadEnum<{type.VisibleClassName()}>(serializer);";
+                return $"CollectionPacker.ReadEnum<{type.CompilableClassName()}>(serializer);";
             
-            return $"serializer.Deserialize<{type.VisibleClassName()}>();";
+            return $"serializer.Deserialize<{type.CompilableClassName()}>();";
         }
     }
 }

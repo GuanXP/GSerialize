@@ -91,7 +91,7 @@ namespace GSerialize
             var builder = new StringBuilder();
             foreach (var s in codeLines)
             {
-                builder.Append(s);
+                builder.AppendLine(s);
             }
             return builder.ToString();
         }
@@ -139,7 +139,7 @@ namespace GSerialize
         private List<string> GenerateWriteMethod(Type type)
         {
             var code = new List<string>();
-            code.Add($"public static void Write({type.VisibleClassName()} value, Serializer serializer)");
+            code.Add($"public static void Write({type.CompilableClassName()} value, Serializer serializer)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");
             foreach (var p in PropertyFieldInfo.FindProperties(type))
@@ -148,7 +148,7 @@ namespace GSerialize
             }
             code.Add("}");
 
-            code.Add($"public static async Task WriteAsync({type.VisibleClassName()} value,");
+            code.Add($"public static async Task WriteAsync({type.CompilableClassName()} value,");
             code.Add("Serializer serializer, CancellationToken cancellation)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");
@@ -221,7 +221,7 @@ namespace GSerialize
         private List<string> GenerateReadMethod(Type type)
         {
             var code = new List<string>();
-            var ReturnClassName = type.VisibleClassName();
+            var ReturnClassName = type.CompilableClassName();
             code.Add($"public static {ReturnClassName} Read(Serializer serializer)");
             code.Add("{");
             code.Add("var packer = serializer.Packer;");           
@@ -464,22 +464,22 @@ namespace GSerialize
 
         public string ReadingStatement(PropertyFieldInfo p)
         {
-            return $"CollectionPacker.ReadEnum<{p.MemberType.VisibleClassName()}>(serializer)";
+            return $"CollectionPacker.ReadEnum<{p.MemberType.CompilableClassName()}>(serializer)";
         }
 
         public string ReadingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"CollectionPacker.ReadEnumAsync<{p.MemberType.VisibleClassName()}>(serializer, cancellation)";
+            return $"CollectionPacker.ReadEnumAsync<{p.MemberType.CompilableClassName()}>(serializer, cancellation)";
         }
 
         public string WrittingStatement(PropertyFieldInfo p)
         {
-            return $"CollectionPacker.WriteEnum<{p.MemberType.VisibleClassName()}>(value.{p.MemberName}, serializer);";
+            return $"CollectionPacker.WriteEnum<{p.MemberType.CompilableClassName()}>(value.{p.MemberName}, serializer);";
         }
 
         public string WrittingAsyncStatement(PropertyFieldInfo p)
         {
-            return $"CollectionPacker.WriteEnumAsync<{p.MemberType.VisibleClassName()}>(value.{p.MemberName}, serializer, cancellation);";
+            return $"CollectionPacker.WriteEnumAsync<{p.MemberType.CompilableClassName()}>(value.{p.MemberName}, serializer, cancellation);";
         }
     }
 

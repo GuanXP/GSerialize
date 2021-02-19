@@ -10,6 +10,8 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using XPRPC;
 using XPRPC.Client;
@@ -22,17 +24,31 @@ namespace TestRpc
     {
         static void Main(string[] args)
         {
-            //TestLocal();
-            TestTcp();
+            if (args.Length > 0)
+            {
+                if (args[0] == "RunServiceManager")
+                {
+                    RunServiceManager();
+                }
+                else if (args[0] == "RunEchoServer")
+                {
+                    RunEchoServer();
+                }                
+            }
+            else
+            {
+                TestLocal();
+                TestTcp();
+            }
         }
 
         static void TestLocal()
         {
-            //Server site
+            //Server site code
             var descManager = new ServiceDescriptor
             {
                 Name = "service_manager",
-                Description = "manager of services",
+                Description = "service manager",
             };
             using var managerRunner = LocalManagerRunner.Instance;
             var config = AccessConfig.FromJson(ManagerConfigJson);
@@ -42,7 +58,7 @@ namespace TestRpc
             var descLogger = new ServiceDescriptor
             {
                 Name = "logger",
-                Description = "logging service",
+                Description = "log service",
             };
             using var loggerService = BuilderLogger();
             using var loggerRunner = new LocalServiceRunner<ILogger>(loggerService, descLogger);
@@ -58,7 +74,7 @@ namespace TestRpc
             using var echoRunner = new LocalServiceRunner<IEcho2>(echoService, echoDescriptor);
             echoRunner.Start(descManager, clientID: "echo_provider",secretKey: "F*ooE3");
 
-            //client site
+            //client site code
             using var resolver = new LocalServiceResolver(descLogger, clientID: "logger_client",secretKey: "02384Je5");
             var services = resolver.ServiceManager.ListService();
             foreach (var desc in services)
@@ -70,77 +86,68 @@ namespace TestRpc
             loggerClient.Debug(tag: "local_test", message: "Hello XPRPC");       
 
             var echoClient = resolver.GetService<IEcho2>("echo");
+            //call sync methods         
             Console.WriteLine(echoClient.SayHello("World!"));
             Console.WriteLine(echoClient.SayHi("XP!"));
-          
-            echoClient.GreetingEvent += (sender, args) => {Console.WriteLine(args.Greeting);};
+            //add event handler           
+            echoClient.GreetingEvent += (sender, args) => { Console.WriteLine(args.Greeting); };
             echoService.Greeting("Hello clients!");
             echoClient.Greeting2Event += OnEchoGreeting;
             echoService.Greeting("Hello echo!");
-
+            //callback & async method call
             echoClient.SetCallback(new Callback());
             echoService.GreetingAsync("Hello echo async!").Wait();
             echoClient.SetCallback(null);
             echoService.GreetingAsync("Hello echo async agin!").Wait();
-
+            //remove event handler
             echoClient.Greeting2Event -= OnEchoGreeting;
-            echoService.Greeting("Hello echo two!");     
+            echoService.Greeting("Hello echo two!");
+            Console.WriteLine(echoClient.SayHelloAsync("World!").Result);
+        }
+
+        static string MakeProcessArg(string arg)
+        {            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return arg;
+            var dll = new Uri(typeof(Program).Assembly.CodeBase).LocalPath;
+            return $"\"{dll}\" {arg}";
         }
 
         static void TestTcp()
         {
-            //server site
+            //Start service manager process
+            var exe = Process.GetCurrentProcess().MainModule.FileName;
+            
+            Process managerProcess = new Process();
+            managerProcess.StartInfo.FileName = exe;
+            managerProcess.StartInfo.Arguments = MakeProcessArg("RunServiceManager");
+            managerProcess.Start();
+            managerProcess.WaitForExit(milliseconds: 10000);
 
-            // deploy ServiceManager
-            var logger = BuilderLogger();
+            //Start echo service process
+            Process echoProcess = new Process();
+            echoProcess.StartInfo.FileName = exe;
+            echoProcess.StartInfo.Arguments = MakeProcessArg("RunEchoServer");
+            echoProcess.Start();
+            echoProcess.WaitForExit(milliseconds: 5000);
+
+            TestEcho();
+
+            echoProcess.WaitForExit();
+            managerProcess.Kill();
+        }
+
+        static void TestEcho()
+        {
+            //client site code
             var descManager = new ServiceDescriptor
             {
                 Name = "service_manager",
-                Description = "manager of services",
+                Description = "global service manager",
                 ServiceHost = "localhost",
                 ServicePort = 3324,
                 AccessToken = "AnyClient"
             };
-            using var managerRunner = TcpManagerRunner.Instance;
-            managerRunner.Logger = logger;
-            var config = AccessConfig.FromJson(ManagerConfigJson);
-            managerRunner.Config(config);
-            managerRunner.Start(descManager, sslCertificate: null);
-
-            // deploy a service
-            var loggerDescriptor = new ServiceDescriptor
-            {
-                Name = "logger",
-                Description = "logging service",
-                ServiceHost = "localhost",
-                ServicePort = 3325,
-            };
-            using var loggerRunner = new TcpServiceRunner<ILogger>(
-                service: logger,                 
-                descriptor: loggerDescriptor, 
-                logger: logger, 
-                sslCertificate: null);
-            loggerRunner.Start(descManager, clientID: "logger_provider",secretKey: "Dx90et54");
-
-            // deploy another service
-            var echoDescriptor = new ServiceDescriptor
-            {
-                Name = "echo",
-                Description = "demo service",
-                //ServiceHost = "localhost",  //if no ServiceHost, the default IP will be used
-                ServicePort = 0, //can be any port
-            };
-            var echoService = new EchoImpl();
-            using var echoRunner = new TcpServiceRunner<IEcho2>(
-                service: echoService,                  
-                descriptor: echoDescriptor, 
-                logger: logger,
-                sslCertificate: null);
-            echoRunner.Start(descManager, clientID: "echo_provider",secretKey: "F*ooE3");            
-
-            //client site
-
-            //Construct an resolver
             using var resolver = new TcpServiceResolver(descManager, clientID: "logger_client", secretKey: "02384Je5");
             IServiceManager managerProxy = resolver.ServiceManager;
             var services = managerProxy.ListService();
@@ -149,34 +156,107 @@ namespace TestRpc
                 Console.WriteLine(desc.ToString());
             }
 
-            // get a service proxy
-            var remoteLogger = resolver.GetService<ILogger>("logger");
-            remoteLogger.Info(tag: "Tcp Test", message: "remote log message.");
-
-            // get another service proxy
-            var echoClient = resolver.GetService<IEcho2>("echo");   
-            //call sync methods of the proxy  
+            IEcho2 echoClient;
+            while (true) //wait for server ready
+            {
+                echoClient = resolver.GetService<IEcho2>("echo");
+                if (echoClient == null)
+                    Thread.Sleep(100);
+                else
+                    break;
+            }
+            //sync method call         
             Console.WriteLine(echoClient.SayHello("World!"));
-            Console.WriteLine(echoClient.SayHi("XP!")); 
-            //events call       
-            echoClient.GreetingEvent += (sender, args) => {Console.WriteLine(args.Greeting);};
-            echoService.Greeting("Hello clients!");
+            Console.WriteLine(echoClient.SayHi("XP!"));
+            //add event handler           
+            echoClient.GreetingEvent += (sender, args) => { Console.WriteLine(args.Greeting); };
+            echoClient.Greeting("Hello clients!");
             echoClient.Greeting2Event += OnEchoGreeting;
-            echoService.Greeting("Hello echo!");
-            //bi-direction call
+            echoClient.Greeting("Hello echo!");
+            //callback & async method call
             echoClient.SetCallback(new Callback());
-            echoService.GreetingAsync("Hello echo async!").Wait();
+            echoClient.GreetingAsync("Hello echo async!").Wait();
             echoClient.SetCallback(null);
-            echoService.GreetingAsync("Hello echo async agin!").Wait();
-            //events
+            echoClient.GreetingAsync("Hello echo async agin!").Wait();
+            //remove event handler
             echoClient.Greeting2Event -= OnEchoGreeting;
-            echoService.Greeting("Hello echo two!");            
+            echoClient.Greeting("Hello echo two!");
             Console.WriteLine(echoClient.SayHelloAsync("World!").Result);
+            echoClient.Stop();
         }
 
         private static void OnEchoGreeting(Object sender, EchoEventArgs args)
         {
             Console.WriteLine($"Server says {args.Greeting}");
+        }
+
+        static void RunServiceManager()
+        {
+            var logger = BuilderLogger();
+            var descManager = new ServiceDescriptor
+            {
+                Name = "service_manager",
+                Description = "global service_manager",
+                ServiceHost = "localhost",
+                ServicePort = 3324,  //service manager must specify a port
+                AccessToken = "AnyClient"
+            };
+            using var managerRunner = TcpManagerRunner.Instance;
+            managerRunner.Logger = logger;
+            var config = AccessConfig.FromJson(ManagerConfigJson);
+            managerRunner.Config(config);
+            managerRunner.Start(descManager, sslCertificate: null);
+
+            var loggerDescriptor = new ServiceDescriptor
+            {
+                Name = "logger",
+                Description = "log service",
+                ServiceHost = "localhost",
+                ServicePort = 3325,
+            };
+            using var loggerRunner = new TcpServiceRunner<ILogger>(
+                service: logger,
+                descriptor: loggerDescriptor,
+                logger: logger,
+                sslCertificate: null);
+            loggerRunner.Start(descManager, clientID: "logger_provider", secretKey: "Dx90et54");
+            while(true)
+            {
+                Thread.Sleep(1000);
+            }
+        }
+
+        static void RunEchoServer()
+        {
+            var echoDescriptor = new ServiceDescriptor
+            {
+                Name = "echo",
+                Description = "demo service",
+                ServiceHost = "localhost",
+                ServicePort = 0, //the port can be set to any
+            };
+            var descManager = new ServiceDescriptor
+            {
+                Name = "service_manager",
+                Description = "global service manager",
+                ServiceHost = "localhost",
+                ServicePort = 3324,
+                AccessToken = "AnyClient"
+            };
+
+            using var resolver = new TcpServiceResolver(descManager, clientID: "logger_client", secretKey: "02384Je5");
+            var remoteLogger = resolver.GetService<ILogger>("logger");
+            
+            var echoService = new EchoImpl();
+            using var echoRunner = new TcpServiceRunner<IEcho2>(
+                service: echoService,                  
+                descriptor: echoDescriptor, 
+                logger: remoteLogger,
+                sslCertificate: null);
+            echoRunner.Start(descManager, clientID: "echo_provider",secretKey: "F*ooE3");
+
+            echoService.WaitForStop();
+            Thread.Sleep(2000); //sleep a while so that the client can release the proxy first
         }
 
         static ILogger BuilderLogger()
@@ -213,6 +293,7 @@ namespace TestRpc
     public interface IEcho
     {
         string SayHello(string message);
+        void Greeting(string greeting);
         Task<string> SayHelloAsync(string message);
         event EventHandler<EchoEventArgs> GreetingEvent;        
     }
@@ -225,6 +306,8 @@ namespace TestRpc
         Task GreetingAsync(string message);
 
         void SetCallback(IEchoListener listener);
+
+        void Stop();
     }
 
     public interface IEchoListener
@@ -270,6 +353,29 @@ namespace TestRpc
         public void SetCallback(IEchoListener listener)
         {
             _listener = listener;
+        }
+
+
+        private bool _stop;
+        private object _lock = new object();
+        internal void WaitForStop()
+        {
+            lock(_lock)
+            {
+                while(!_stop)
+                {
+                    Monitor.Wait(_lock);
+                }
+            }
+        }
+
+        public void Stop()
+        {
+            lock(_lock)
+            {
+                _stop = true;
+                Monitor.PulseAll(_lock);
+            }
         }
     }
 
